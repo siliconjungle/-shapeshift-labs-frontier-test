@@ -1,0 +1,69 @@
+{
+  "name": "@shapeshift-labs/frontier-test",
+  "version": "0.1.0",
+  "description": "Serializable test/spec evidence manifests for Frontier apps.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/siliconjungle/-shapeshift-labs-frontier-test.git"
+  },
+  "homepage": "https://github.com/siliconjungle/-shapeshift-labs-frontier-test#readme",
+  "bugs": {
+    "url": "https://github.com/siliconjungle/-shapeshift-labs-frontier-test/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "benchmarks/package-bench.mjs",
+    "benchmarks/competitor-bench.mjs"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "npm run build && npm run typecheck && node test/smoke.mjs && node test/fuzz.mjs --cases 900",
+    "prepack": "npm run readme:packages:check && npm run test",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "fuzz": "npm run build && node test/fuzz.mjs",
+    "bench": "npm run build && node --expose-gc benchmarks/package-bench.mjs --out benchmarks/results/frontier-test-package-bench-latest.json",
+    "bench:competitors": "npm run build && node --expose-gc benchmarks/competitor-bench.mjs --out benchmarks/results/frontier-test-competitors-latest.json",
+    "pack:dry": "npm pack --dry-run",
+    "readme:packages": "node benchmarks/package-readme-sections.mjs",
+    "readme:packages:check": "node benchmarks/package-readme-sections.mjs --check"
+  },
+  "keywords": [
+    "frontier",
+    "test",
+    "spec",
+    "coverage",
+    "evidence",
+    "junit",
+    "tap",
+    "fuzzing",
+    "benchmark"
+  ],
+  "dependencies": {
+    "@shapeshift-labs/frontier": "0.1.9"
+  },
+  "devDependencies": {
+    "@cucumber/messages": "^32.3.1",
+    "fast-check": "^4.1.7",
+    "junit-report-builder": "^5.1.2",
+    "tap-parser": "^18.3.4",
+    "typescript": "^6.0.3"
+  }
+}

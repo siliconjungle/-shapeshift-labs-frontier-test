@@ -1,0 +1,1595 @@
+import type { JsonObject, JsonValue } from '@shapeshift-labs/frontier';
+import { cloneJson } from '@shapeshift-labs/frontier/clone';
+import {
+  createFrontierRegistryGraph,
+  type FrontierRegistryEdge,
+  type FrontierRegistryEntry,
+  type FrontierRegistryGraph,
+  type FrontierRegistryImpact,
+  type FrontierRegistrySource
+} from '@shapeshift-labs/frontier/registry';
+
+export const FRONTIER_TEST_MANIFEST_KIND = 'frontier.test.manifest';
+export const FRONTIER_TEST_MANIFEST_VERSION = 1;
+export const FRONTIER_TEST_SPEC_KIND = 'frontier.test.spec';
+export const FRONTIER_TEST_SPEC_VERSION = 1;
+export const FRONTIER_TEST_RUN_PLAN_KIND = 'frontier.test.run-plan';
+export const FRONTIER_TEST_RUN_PLAN_VERSION = 1;
+export const FRONTIER_TEST_RUN_KIND = 'frontier.test.run';
+export const FRONTIER_TEST_RUN_VERSION = 1;
+export const FRONTIER_TEST_IMPACT_KIND = 'frontier.test.impact';
+export const FRONTIER_TEST_IMPACT_VERSION = 1;
+export const FRONTIER_TEST_PROOF_KIND = 'frontier.test.proof';
+export const FRONTIER_TEST_PROOF_VERSION = 1;
+
+export type FrontierTestKind =
+  | 'unit'
+  | 'integration'
+  | 'e2e'
+  | 'playwright'
+  | 'smoke'
+  | 'fuzz'
+  | 'benchmark'
+  | 'typecheck'
+  | 'boundary'
+  | 'release'
+  | 'migration'
+  | 'policy'
+  | 'workflow'
+  | 'replay'
+  | string;
+
+export type FrontierTestStatus = 'passed' | 'failed' | 'skipped' | 'todo' | 'flaky' | 'blocked' | 'unknown';
+
+export interface FrontierTestFixtureInput {
+  id: string;
+  kind?: string;
+  source?: string | FrontierRegistrySource;
+  stateFixture?: string;
+  files?: readonly string[];
+  data?: unknown;
+  owners?: readonly string[];
+  tags?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestFixture {
+  id: string;
+  kind: string;
+  sourceFiles: string[];
+  stateFixture?: string;
+  data?: JsonObject;
+  owners: string[];
+  tags: string[];
+  source?: FrontierRegistrySource;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestCommandInput {
+  id: string;
+  command: string;
+  args?: readonly string[];
+  cwd?: string;
+  env?: Record<string, string | number | boolean | undefined>;
+  kind?: string;
+  package?: string;
+  source?: string | FrontierRegistrySource;
+  timeoutMs?: number;
+  artifacts?: readonly string[];
+  tags?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestCommand {
+  id: string;
+  command: string;
+  args: string[];
+  cwd?: string;
+  env?: JsonObject;
+  kind: string;
+  package?: string;
+  sourceFiles: string[];
+  timeoutMs?: number;
+  artifacts: string[];
+  tags: string[];
+  source?: FrontierRegistrySource;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestExpectationInput {
+  patches?: readonly (string | { path?: string; op?: string })[];
+  effects?: readonly string[];
+  routes?: readonly string[];
+  route?: string;
+  policies?: readonly string[];
+  policy?: readonly string[];
+  traces?: readonly string[];
+  artifacts?: readonly string[];
+  assertions?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestExpectation {
+  patches: string[];
+  effects: string[];
+  routes: string[];
+  policies: string[];
+  traces: string[];
+  artifacts: string[];
+  assertions: string[];
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestWhenInput {
+  action?: string;
+  tool?: string;
+  workflow?: string;
+  migration?: string;
+  effect?: string;
+  route?: string;
+  input?: unknown;
+  metadata?: unknown;
+}
+
+export interface FrontierTestWhen {
+  action?: string;
+  tool?: string;
+  workflow?: string;
+  migration?: string;
+  effect?: string;
+  route?: string;
+  input?: JsonObject;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestGivenInput {
+  stateFixture?: string;
+  fixtures?: readonly string[];
+  route?: string;
+  actor?: string;
+  capabilities?: readonly string[];
+  files?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestGiven {
+  stateFixture?: string;
+  fixtures: string[];
+  route?: string;
+  actor?: string;
+  capabilities: string[];
+  files: string[];
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestSpecInput {
+  id: string;
+  title?: string;
+  description?: string;
+  kind?: FrontierTestKind;
+  feature?: string;
+  given?: FrontierTestGivenInput;
+  when?: FrontierTestWhenInput;
+  expect?: FrontierTestExpectationInput;
+  covers?: readonly string[];
+  actions?: readonly string[];
+  effects?: readonly string[];
+  routes?: readonly string[];
+  policies?: readonly string[];
+  views?: readonly string[];
+  workflows?: readonly string[];
+  migrations?: readonly string[];
+  statePaths?: readonly string[];
+  resources?: readonly string[];
+  fixtures?: readonly string[];
+  commands?: readonly string[];
+  gates?: readonly string[];
+  artifacts?: readonly string[];
+  replayOf?: string;
+  fuzzer?: string;
+  benchmark?: string;
+  owners?: readonly string[];
+  package?: string;
+  source?: string | FrontierRegistrySource;
+  sourceFiles?: readonly string[];
+  tags?: readonly string[];
+  priority?: number;
+  timeoutMs?: number;
+  retries?: number;
+  metadata?: unknown;
+}
+
+export interface FrontierTestSpec {
+  kind: typeof FRONTIER_TEST_SPEC_KIND;
+  version: typeof FRONTIER_TEST_SPEC_VERSION;
+  id: string;
+  testKind: FrontierTestKind;
+  title: string;
+  description?: string;
+  feature?: string;
+  given: FrontierTestGiven;
+  when: FrontierTestWhen;
+  expect: FrontierTestExpectation;
+  covers: string[];
+  actions: string[];
+  effects: string[];
+  routes: string[];
+  policies: string[];
+  views: string[];
+  workflows: string[];
+  migrations: string[];
+  statePaths: string[];
+  resources: string[];
+  fixtures: string[];
+  commands: string[];
+  gates: string[];
+  artifacts: string[];
+  replayOf?: string;
+  fuzzer?: string;
+  benchmark?: string;
+  owners: string[];
+  package?: string;
+  sourceFiles: string[];
+  tags: string[];
+  priority: number;
+  timeoutMs?: number;
+  retries: number;
+  source?: FrontierRegistrySource;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestManifestInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  package?: string;
+  feature?: string;
+  owner?: string;
+  specs?: readonly FrontierTestSpecInput[];
+  fixtures?: readonly FrontierTestFixtureInput[];
+  commands?: readonly FrontierTestCommandInput[];
+  coverageTargets?: readonly string[];
+  artifacts?: readonly string[];
+  tags?: readonly string[];
+  source?: FrontierRegistrySource;
+  generatedAt?: number;
+  metadata?: unknown;
+}
+
+export interface FrontierTestSummary {
+  specCount: number;
+  fixtureCount: number;
+  commandCount: number;
+  featureCount: number;
+  coverCount: number;
+  actionCount: number;
+  effectCount: number;
+  routeCount: number;
+  policyCount: number;
+  workflowCount: number;
+  migrationCount: number;
+  statePathCount: number;
+  artifactCount: number;
+  fuzzSpecCount: number;
+  benchmarkSpecCount: number;
+  replaySpecCount: number;
+}
+
+export interface FrontierTestManifest {
+  kind: typeof FRONTIER_TEST_MANIFEST_KIND;
+  version: typeof FRONTIER_TEST_MANIFEST_VERSION;
+  id: string;
+  title?: string;
+  description?: string;
+  package?: string;
+  feature?: string;
+  owner?: string;
+  specs: FrontierTestSpec[];
+  fixtures: FrontierTestFixture[];
+  commands: FrontierTestCommand[];
+  coverageTargets: string[];
+  artifacts: string[];
+  tags: string[];
+  source?: FrontierRegistrySource;
+  generatedAt?: number;
+  metadata?: JsonObject;
+  summary: FrontierTestSummary;
+}
+
+export interface FrontierTestValidationIssue {
+  code: string;
+  message: string;
+  specId?: string;
+  targetId?: string;
+  severity: 'error' | 'warning';
+}
+
+export interface FrontierTestValidation {
+  valid: boolean;
+  issues: FrontierTestValidationIssue[];
+}
+
+export interface FrontierCompiledTestManifest {
+  kind: 'frontier.test.compiled';
+  version: 1;
+  manifest: FrontierTestManifest;
+  specsById: ReadonlyMap<string, FrontierTestSpec>;
+  fixturesById: ReadonlyMap<string, FrontierTestFixture>;
+  commandsById: ReadonlyMap<string, FrontierTestCommand>;
+  specsByCover: ReadonlyMap<string, readonly string[]>;
+  specsByFeature: ReadonlyMap<string, readonly string[]>;
+  specsByKind: ReadonlyMap<string, readonly string[]>;
+  specsByCommand: ReadonlyMap<string, readonly string[]>;
+  specsByFixture: ReadonlyMap<string, readonly string[]>;
+  specsByFile: ReadonlyMap<string, readonly string[]>;
+  specsByTag: ReadonlyMap<string, readonly string[]>;
+  specsByOwner: ReadonlyMap<string, readonly string[]>;
+  specsByPackage: ReadonlyMap<string, readonly string[]>;
+  specsByAction: ReadonlyMap<string, readonly string[]>;
+  specsByEffect: ReadonlyMap<string, readonly string[]>;
+  specsByRoute: ReadonlyMap<string, readonly string[]>;
+  specsByPolicy: ReadonlyMap<string, readonly string[]>;
+  specsByWorkflow: ReadonlyMap<string, readonly string[]>;
+  specsByMigration: ReadonlyMap<string, readonly string[]>;
+  specsByStatePath: ReadonlyMap<string, readonly string[]>;
+  specsByResource: ReadonlyMap<string, readonly string[]>;
+  specsByArtifact: ReadonlyMap<string, readonly string[]>;
+  validation: FrontierTestValidation;
+  get(specId: string): FrontierTestSpec;
+}
+
+export interface FrontierTestQueryInput {
+  ids?: readonly string[];
+  kinds?: readonly string[];
+  features?: readonly string[];
+  covers?: readonly string[];
+  actions?: readonly string[];
+  effects?: readonly string[];
+  routes?: readonly string[];
+  policies?: readonly string[];
+  views?: readonly string[];
+  workflows?: readonly string[];
+  migrations?: readonly string[];
+  statePaths?: readonly string[];
+  resources?: readonly string[];
+  fixtures?: readonly string[];
+  commands?: readonly string[];
+  packages?: readonly string[];
+  owners?: readonly string[];
+  tags?: readonly string[];
+  artifacts?: readonly string[];
+  fuzzers?: readonly string[];
+  benchmarks?: readonly string[];
+  limit?: number;
+}
+
+export interface FrontierTestQueryResult {
+  kind: 'frontier.test.query';
+  version: 1;
+  ids: string[];
+  specs: FrontierTestSpec[];
+}
+
+export interface FrontierTestImpactInput extends FrontierTestQueryInput {
+  changedFeatures?: readonly string[];
+  changedCovers?: readonly string[];
+  changedActions?: readonly string[];
+  changedEffects?: readonly string[];
+  changedRoutes?: readonly string[];
+  changedPolicies?: readonly string[];
+  changedViews?: readonly string[];
+  changedWorkflows?: readonly string[];
+  changedMigrations?: readonly string[];
+  changedStatePaths?: readonly string[];
+  changedResources?: readonly string[];
+  changedFixtures?: readonly string[];
+  changedCommands?: readonly string[];
+  changedFiles?: readonly string[];
+  changedArtifacts?: readonly string[];
+  expectedCoverage?: readonly string[];
+}
+
+export interface FrontierTestImpactReason {
+  specId: string;
+  targetId?: string;
+  reason: string;
+}
+
+export interface FrontierTestImpact extends Omit<FrontierRegistryImpact, 'kind' | 'version'> {
+  kind: typeof FRONTIER_TEST_IMPACT_KIND;
+  version: typeof FRONTIER_TEST_IMPACT_VERSION;
+  manifestId: string;
+  specIds: string[];
+  features: string[];
+  covers: string[];
+  commands: string[];
+  fixtures: string[];
+  expectedPatches: string[];
+  effects: string[];
+  routes: string[];
+  policies: string[];
+  artifacts: string[];
+  uncovered: string[];
+  reasons: FrontierTestImpactReason[];
+}
+
+export interface FrontierTestRunPlanItem {
+  specId: string;
+  reason: string;
+  commandIds: string[];
+  fixtureIds: string[];
+  artifacts: string[];
+}
+
+export interface FrontierTestRunPlan {
+  kind: typeof FRONTIER_TEST_RUN_PLAN_KIND;
+  version: typeof FRONTIER_TEST_RUN_PLAN_VERSION;
+  id: string;
+  manifestId: string;
+  mode: string;
+  createdAt: number;
+  specIds: string[];
+  commandIds: string[];
+  fixtureIds: string[];
+  artifacts: string[];
+  items: FrontierTestRunPlanItem[];
+  impact: FrontierTestImpact;
+  summary: FrontierTestSummary;
+  shard?: { index: number; count: number };
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestResultInput {
+  specId: string;
+  status: FrontierTestStatus;
+  durationMs?: number;
+  attempts?: number;
+  patches?: readonly string[];
+  effects?: readonly string[];
+  route?: string;
+  routes?: readonly string[];
+  policies?: readonly string[];
+  artifacts?: readonly string[];
+  traceIds?: readonly string[];
+  error?: string;
+  metadata?: unknown;
+}
+
+export interface FrontierTestResult {
+  specId: string;
+  status: FrontierTestStatus;
+  durationMs: number;
+  attempts: number;
+  patches: string[];
+  effects: string[];
+  routes: string[];
+  policies: string[];
+  artifacts: string[];
+  traceIds: string[];
+  error?: string;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestRunInput {
+  id?: string;
+  planId?: string;
+  mode?: string;
+  status?: FrontierTestStatus;
+  startedAt?: number;
+  finishedAt?: number;
+  commandIds?: readonly string[];
+  results?: readonly FrontierTestResultInput[];
+  artifacts?: readonly string[];
+  traceIds?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestRunSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  todo: number;
+  flaky: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+}
+
+export interface FrontierTestCoverageSummary {
+  kind: 'frontier.test.coverage';
+  version: 1;
+  manifestId: string;
+  covered: string[];
+  uncovered: string[];
+  byKind: Record<string, string[]>;
+  specIds: string[];
+  coverageRatio: number;
+}
+
+export interface FrontierTestRunRecord {
+  kind: typeof FRONTIER_TEST_RUN_KIND;
+  version: typeof FRONTIER_TEST_RUN_VERSION;
+  id: string;
+  manifestId: string;
+  planId?: string;
+  mode: string;
+  status: FrontierTestStatus;
+  startedAt: number;
+  finishedAt: number;
+  durationMs: number;
+  commandIds: string[];
+  results: FrontierTestResult[];
+  artifacts: string[];
+  traceIds: string[];
+  summary: FrontierTestRunSummary;
+  coverage: FrontierTestCoverageSummary;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestRunDiff {
+  kind: 'frontier.test.run-diff';
+  version: 1;
+  leftRunId: string;
+  rightRunId: string;
+  added: string[];
+  removed: string[];
+  statusChanged: Array<{ specId: string; from: FrontierTestStatus; to: FrontierTestStatus }>;
+  durationChanged: Array<{ specId: string; fromMs: number; toMs: number; deltaMs: number }>;
+  artifactChanged: string[];
+  summary: { changed: number; added: number; removed: number };
+}
+
+export interface FrontierTestProof {
+  kind: typeof FRONTIER_TEST_PROOF_KIND;
+  version: typeof FRONTIER_TEST_PROOF_VERSION;
+  manifestId: string;
+  generatedAt: number;
+  hash: string;
+  summary: FrontierTestSummary | FrontierTestRunSummary | FrontierTestCoverageSummary;
+  validation?: FrontierTestValidation;
+  metadata?: JsonObject;
+}
+
+export function defineTestSpec(input: FrontierTestSpecInput): FrontierTestSpec {
+  return normalizeSpec(input);
+}
+
+export function defineSpec(input: FrontierTestSpecInput): FrontierTestSpec {
+  return defineTestSpec(input);
+}
+
+export function createTestManifest(input: FrontierTestManifestInput = {}): FrontierTestManifest {
+  const specs = (input.specs ?? []).map(normalizeSpec);
+  const fixtures = (input.fixtures ?? []).map(normalizeFixture);
+  const commands = (input.commands ?? []).map(normalizeCommand);
+  const coverageTargets = uniqueStrings((input.coverageTargets ?? []).concat(specs.flatMap(coverIdsOf)));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(specs.flatMap((spec) => spec.artifacts), commands.flatMap((command) => command.artifacts)));
+  return {
+    kind: FRONTIER_TEST_MANIFEST_KIND,
+    version: FRONTIER_TEST_MANIFEST_VERSION,
+    id: normalizeId(input.id ?? 'tests', 'test manifest id'),
+    ...(input.title ? { title: input.title } : {}),
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.package ? { package: input.package } : {}),
+    ...(input.feature ? { feature: input.feature } : {}),
+    ...(input.owner ? { owner: input.owner } : {}),
+    specs,
+    fixtures,
+    commands,
+    coverageTargets,
+    artifacts,
+    tags: uniqueStrings(input.tags),
+    ...(input.source ? { source: input.source } : {}),
+    ...(input.generatedAt !== undefined ? { generatedAt: input.generatedAt } : {}),
+    ...optionalObject('metadata', input.metadata),
+    summary: summarizeManifest(specs, fixtures, commands, coverageTargets, artifacts)
+  };
+}
+
+export const createSpecManifest = createTestManifest;
+
+export function compileTestManifest(manifestOrInput: FrontierTestManifest | FrontierTestManifestInput): FrontierCompiledTestManifest {
+  const manifest = isTestManifest(manifestOrInput) ? cloneTestManifest(manifestOrInput) : createTestManifest(manifestOrInput);
+  const specsById = new Map<string, FrontierTestSpec>();
+  const fixturesById = new Map<string, FrontierTestFixture>();
+  const commandsById = new Map<string, FrontierTestCommand>();
+  const specsByCover = new Map<string, string[]>();
+  const specsByFeature = new Map<string, string[]>();
+  const specsByKind = new Map<string, string[]>();
+  const specsByCommand = new Map<string, string[]>();
+  const specsByFixture = new Map<string, string[]>();
+  const specsByFile = new Map<string, string[]>();
+  const specsByTag = new Map<string, string[]>();
+  const specsByOwner = new Map<string, string[]>();
+  const specsByPackage = new Map<string, string[]>();
+  const specsByAction = new Map<string, string[]>();
+  const specsByEffect = new Map<string, string[]>();
+  const specsByRoute = new Map<string, string[]>();
+  const specsByPolicy = new Map<string, string[]>();
+  const specsByWorkflow = new Map<string, string[]>();
+  const specsByMigration = new Map<string, string[]>();
+  const specsByStatePath = new Map<string, string[]>();
+  const specsByResource = new Map<string, string[]>();
+  const specsByArtifact = new Map<string, string[]>();
+
+  for (const fixture of manifest.fixtures) fixturesById.set(fixture.id, fixture);
+  for (const command of manifest.commands) commandsById.set(command.id, command);
+  for (const spec of manifest.specs) {
+    specsById.set(spec.id, spec);
+    pushMap(specsByKind, spec.testKind, spec.id);
+    if (spec.feature) pushMap(specsByFeature, spec.feature, spec.id);
+    if (spec.package) pushMap(specsByPackage, spec.package, spec.id);
+    for (const cover of coverIdsOf(spec)) pushMap(specsByCover, cover, spec.id);
+    for (const command of spec.commands) pushMap(specsByCommand, command, spec.id);
+    for (const fixture of spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : [])) pushMap(specsByFixture, fixture, spec.id);
+    for (const file of spec.sourceFiles.concat(spec.given.files)) pushMap(specsByFile, file, spec.id);
+    for (const tag of spec.tags) pushMap(specsByTag, tag, spec.id);
+    for (const owner of spec.owners) pushMap(specsByOwner, owner, spec.id);
+    for (const action of spec.actions) pushMap(specsByAction, action, spec.id);
+    for (const effect of spec.effects.concat(spec.expect.effects)) pushMap(specsByEffect, effect, spec.id);
+    for (const route of spec.routes.concat(spec.expect.routes)) pushMap(specsByRoute, route, spec.id);
+    for (const policy of spec.policies.concat(spec.expect.policies)) pushMap(specsByPolicy, policy, spec.id);
+    for (const workflow of spec.workflows) pushMap(specsByWorkflow, workflow, spec.id);
+    for (const migration of spec.migrations) pushMap(specsByMigration, migration, spec.id);
+    for (const statePath of spec.statePaths.concat(spec.expect.patches)) pushMap(specsByStatePath, statePath, spec.id);
+    for (const resource of spec.resources) pushMap(specsByResource, resource, spec.id);
+    for (const artifact of spec.artifacts.concat(spec.expect.artifacts)) pushMap(specsByArtifact, artifact, spec.id);
+  }
+
+  const validation = validateTestManifest(manifest);
+  return {
+    kind: 'frontier.test.compiled',
+    version: 1,
+    manifest,
+    specsById,
+    fixturesById,
+    commandsById,
+    specsByCover: freezeMapLists(specsByCover),
+    specsByFeature: freezeMapLists(specsByFeature),
+    specsByKind: freezeMapLists(specsByKind),
+    specsByCommand: freezeMapLists(specsByCommand),
+    specsByFixture: freezeMapLists(specsByFixture),
+    specsByFile: freezeMapLists(specsByFile),
+    specsByTag: freezeMapLists(specsByTag),
+    specsByOwner: freezeMapLists(specsByOwner),
+    specsByPackage: freezeMapLists(specsByPackage),
+    specsByAction: freezeMapLists(specsByAction),
+    specsByEffect: freezeMapLists(specsByEffect),
+    specsByRoute: freezeMapLists(specsByRoute),
+    specsByPolicy: freezeMapLists(specsByPolicy),
+    specsByWorkflow: freezeMapLists(specsByWorkflow),
+    specsByMigration: freezeMapLists(specsByMigration),
+    specsByStatePath: freezeMapLists(specsByStatePath),
+    specsByResource: freezeMapLists(specsByResource),
+    specsByArtifact: freezeMapLists(specsByArtifact),
+    validation,
+    get(specId) {
+      const id = normalizeId(specId, 'test spec id');
+      const spec = specsById.get(id);
+      if (!spec) throw new TypeError('unknown test spec: ' + specId);
+      return spec;
+    }
+  };
+}
+
+export const compileTests = compileTestManifest;
+
+export function validateTestManifest(manifestOrInput: FrontierTestManifest | FrontierTestManifestInput): FrontierTestValidation {
+  const manifest = isTestManifest(manifestOrInput) ? manifestOrInput : createTestManifest(manifestOrInput);
+  const issues: FrontierTestValidationIssue[] = [];
+  const specIds = new Set<string>();
+  const fixtureIds = new Set(manifest.fixtures.map((fixture) => fixture.id));
+  const commandIds = new Set(manifest.commands.map((command) => command.id));
+  const seenFixtures = new Set<string>();
+  const seenCommands = new Set<string>();
+  for (const fixture of manifest.fixtures) {
+    if (seenFixtures.has(fixture.id)) issues.push({ code: 'duplicate-fixture', message: 'duplicate fixture id: ' + fixture.id, targetId: fixture.id, severity: 'error' });
+    seenFixtures.add(fixture.id);
+  }
+  for (const command of manifest.commands) {
+    if (seenCommands.has(command.id)) issues.push({ code: 'duplicate-command', message: 'duplicate command id: ' + command.id, targetId: command.id, severity: 'error' });
+    seenCommands.add(command.id);
+  }
+  for (const spec of manifest.specs) {
+    if (specIds.has(spec.id)) issues.push({ code: 'duplicate-spec', message: 'duplicate spec id: ' + spec.id, specId: spec.id, severity: 'error' });
+    specIds.add(spec.id);
+    if (coverIdsOf(spec).length === 0) issues.push({ code: 'missing-coverage', message: 'spec has no coverage declaration: ' + spec.id, specId: spec.id, severity: 'warning' });
+    if (spec.expect.patches.length === 0 && spec.expect.effects.length === 0 && spec.expect.routes.length === 0 && spec.expect.policies.length === 0 && spec.expect.assertions.length === 0) {
+      issues.push({ code: 'missing-expectation', message: 'spec has no observable expectation: ' + spec.id, specId: spec.id, severity: 'warning' });
+    }
+    for (const fixture of spec.fixtures.concat(spec.given.fixtures)) {
+      if (!fixtureIds.has(fixture)) issues.push({ code: 'unknown-fixture', message: 'spec references unknown fixture: ' + fixture, specId: spec.id, targetId: fixture, severity: 'warning' });
+    }
+    if (spec.given.stateFixture && !fixtureIds.has(spec.given.stateFixture)) {
+      issues.push({ code: 'unknown-state-fixture', message: 'spec references unknown state fixture: ' + spec.given.stateFixture, specId: spec.id, targetId: spec.given.stateFixture, severity: 'warning' });
+    }
+    for (const command of spec.commands) {
+      if (!commandIds.has(command)) issues.push({ code: 'unknown-command', message: 'spec references unknown command: ' + command, specId: spec.id, targetId: command, severity: 'warning' });
+    }
+    for (const patch of spec.expect.patches) {
+      if (!patch.startsWith('/')) issues.push({ code: 'non-pointer-patch', message: 'expected patch path should be a JSON Pointer: ' + patch, specId: spec.id, targetId: patch, severity: 'warning' });
+    }
+  }
+  return { valid: !issues.some((issue) => issue.severity === 'error'), issues };
+}
+
+export function queryTestManifest(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: FrontierTestQueryInput = {}
+): FrontierTestQueryResult {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const ids = new Set<string>();
+  const indexed = hasValues(input.ids) || hasValues(input.kinds) || hasValues(input.features) || hasValues(input.covers) || hasValues(input.actions) || hasValues(input.effects) || hasValues(input.routes) || hasValues(input.policies) || hasValues(input.workflows) || hasValues(input.migrations) || hasValues(input.statePaths) || hasValues(input.resources) || hasValues(input.fixtures) || hasValues(input.commands) || hasValues(input.packages) || hasValues(input.owners) || hasValues(input.tags) || hasValues(input.artifacts);
+  for (const id of input.ids ?? []) if (compiled.specsById.has(id)) ids.add(id);
+  for (const kind of input.kinds ?? []) pushSet(ids, compiled.specsByKind.get(kind) ?? []);
+  for (const feature of input.features ?? []) pushSet(ids, compiled.specsByFeature.get(feature) ?? []);
+  for (const cover of input.covers ?? []) pushSet(ids, compiled.specsByCover.get(cover) ?? []);
+  for (const action of input.actions ?? []) pushSet(ids, compiled.specsByAction.get(action) ?? []);
+  for (const effect of input.effects ?? []) pushSet(ids, compiled.specsByEffect.get(effect) ?? []);
+  for (const route of input.routes ?? []) pushSet(ids, compiled.specsByRoute.get(route) ?? []);
+  for (const policy of input.policies ?? []) pushSet(ids, compiled.specsByPolicy.get(policy) ?? []);
+  for (const workflow of input.workflows ?? []) pushSet(ids, compiled.specsByWorkflow.get(workflow) ?? []);
+  for (const migration of input.migrations ?? []) pushSet(ids, compiled.specsByMigration.get(migration) ?? []);
+  for (const statePath of input.statePaths ?? []) pushSet(ids, compiled.specsByStatePath.get(statePath) ?? []);
+  for (const resource of input.resources ?? []) pushSet(ids, compiled.specsByResource.get(resource) ?? []);
+  for (const fixture of input.fixtures ?? []) pushSet(ids, compiled.specsByFixture.get(fixture) ?? []);
+  for (const command of input.commands ?? []) pushSet(ids, compiled.specsByCommand.get(command) ?? []);
+  for (const packageName of input.packages ?? []) pushSet(ids, compiled.specsByPackage.get(packageName) ?? []);
+  for (const owner of input.owners ?? []) pushSet(ids, compiled.specsByOwner.get(owner) ?? []);
+  for (const tag of input.tags ?? []) pushSet(ids, compiled.specsByTag.get(tag) ?? []);
+  for (const artifact of input.artifacts ?? []) pushSet(ids, compiled.specsByArtifact.get(artifact) ?? []);
+  let specs = indexed ? specsForIds(compiled.specsById, Array.from(ids)) : compiled.manifest.specs.slice();
+  specs = specs.filter((spec) => matchesQuery(spec, input));
+  specs.sort(compareSpecPriority);
+  if (input.limit !== undefined) specs = specs.slice(0, Math.max(0, input.limit));
+  return { kind: 'frontier.test.query', version: 1, ids: specs.map((spec) => spec.id), specs };
+}
+
+export function traceTestImpact(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: FrontierTestImpactInput = {}
+): FrontierTestImpact {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const touched = new Set<string>();
+  const seeds = new Set<string>();
+  const reasons: FrontierTestImpactReason[] = [];
+  seedIndexed(compiled.specsById, input.ids, seeds, touched, reasons, 'spec');
+  seedIndex(compiled.specsByKind, input.kinds, seeds, touched, reasons, 'kind');
+  seedIndex(compiled.specsByFeature, input.features ?? input.changedFeatures, seeds, touched, reasons, 'feature');
+  seedIndex(compiled.specsByCover, input.covers ?? input.changedCovers, seeds, touched, reasons, 'cover');
+  seedIndex(compiled.specsByAction, input.actions ?? input.changedActions, seeds, touched, reasons, 'action');
+  seedIndex(compiled.specsByEffect, input.effects ?? input.changedEffects, seeds, touched, reasons, 'effect');
+  seedIndex(compiled.specsByRoute, input.routes ?? input.changedRoutes, seeds, touched, reasons, 'route');
+  seedIndex(compiled.specsByPolicy, input.policies ?? input.changedPolicies, seeds, touched, reasons, 'policy');
+  seedIndex(compiled.specsByWorkflow, input.workflows ?? input.changedWorkflows, seeds, touched, reasons, 'workflow');
+  seedIndex(compiled.specsByMigration, input.migrations ?? input.changedMigrations, seeds, touched, reasons, 'migration');
+  seedIndex(compiled.specsByStatePath, input.statePaths ?? input.changedStatePaths, seeds, touched, reasons, 'state-path');
+  seedIndex(compiled.specsByResource, input.resources ?? input.changedResources, seeds, touched, reasons, 'resource');
+  seedIndex(compiled.specsByFixture, input.fixtures ?? input.changedFixtures, seeds, touched, reasons, 'fixture');
+  seedIndex(compiled.specsByCommand, input.commands ?? input.changedCommands, seeds, touched, reasons, 'command');
+  seedIndex(compiled.specsByArtifact, input.artifacts ?? input.changedArtifacts, seeds, touched, reasons, 'artifact');
+  for (const file of input.changedFiles ?? []) seedIndex(compiled.specsByFile, [normalizeFilePath(file)], seeds, touched, reasons, 'source-file');
+  if (input.tags) seedIndex(compiled.specsByTag, input.tags, seeds, touched, reasons, 'tag');
+  if (input.owners) seedIndex(compiled.specsByOwner, input.owners, seeds, touched, reasons, 'owner');
+  if (input.packages) seedIndex(compiled.specsByPackage, input.packages, seeds, touched, reasons, 'package');
+  if (input.fuzzers || input.benchmarks || input.views) {
+    for (const spec of compiled.manifest.specs) {
+      if (input.fuzzers?.includes(spec.fuzzer ?? '')) markTouched(touched, reasons, spec.id, spec.fuzzer, 'fuzzer');
+      if (input.benchmarks?.includes(spec.benchmark ?? '')) markTouched(touched, reasons, spec.id, spec.benchmark, 'benchmark');
+      if (input.views && overlaps(input.views, spec.views)) markTouched(touched, reasons, spec.id, input.views.join(','), 'view');
+    }
+  }
+  if (touched.size === 0 && !hasImpactSelector(input)) {
+    for (const spec of compiled.manifest.specs) markTouched(touched, reasons, spec.id, undefined, 'all');
+  }
+
+  const specs = specsForIds(compiled.specsById, Array.from(touched)).filter((spec) => matchesQuery(spec, input)).sort(compareSpecPriority);
+  const specIds = specs.map((spec) => spec.id);
+  const coverIds = uniqueStrings(specs.flatMap(coverIdsOf));
+  const expectedCoverage = uniqueStrings(input.expectedCoverage ?? compiled.manifest.coverageTargets);
+  const uncovered = expectedCoverage.filter((target) => !coverIds.includes(target));
+  const entries = impactEntries(compiled.manifest, specs);
+  const edges = impactEdges(specs);
+  const nodes = new Set<string>(Array.from(seeds));
+  for (const entry of entries) nodes.add(entry.id);
+  for (const edge of edges) {
+    nodes.add(edge.from);
+    nodes.add(edge.to);
+  }
+  return {
+    kind: FRONTIER_TEST_IMPACT_KIND,
+    version: FRONTIER_TEST_IMPACT_VERSION,
+    seeds: Array.from(seeds),
+    nodes: Array.from(nodes),
+    entries,
+    records: [],
+    edges,
+    manifestId: compiled.manifest.id,
+    specIds,
+    features: uniqueStrings(specs.map((spec) => spec.feature)),
+    covers: coverIds,
+    commands: uniqueStrings(specs.flatMap((spec) => spec.commands)),
+    fixtures: uniqueStrings(specs.flatMap((spec) => spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : []))),
+    expectedPatches: uniqueStrings(specs.flatMap((spec) => spec.expect.patches)),
+    effects: uniqueStrings(specs.flatMap((spec) => spec.effects.concat(spec.expect.effects))),
+    routes: uniqueStrings(specs.flatMap((spec) => spec.routes.concat(spec.expect.routes))),
+    policies: uniqueStrings(specs.flatMap((spec) => spec.policies.concat(spec.expect.policies))),
+    artifacts: uniqueStrings(specs.flatMap((spec) => spec.artifacts.concat(spec.expect.artifacts))),
+    uncovered,
+    reasons: uniqueReasons(reasons)
+  };
+}
+
+export function planTestRun(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: FrontierTestImpactInput & { mode?: string; now?: number | (() => number); shard?: { index: number; count: number }; metadata?: unknown } = {}
+): FrontierTestRunPlan {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const impact = traceTestImpact(compiled, input);
+  let specs = specsForIds(compiled.specsById, impact.specIds);
+  if (input.shard) {
+    const count = Math.max(1, Math.floor(input.shard.count));
+    const index = Math.max(0, Math.min(count - 1, Math.floor(input.shard.index)));
+    specs = specs.filter((_, specIndex) => specIndex % count === index);
+  }
+  const items = specs.map((spec): FrontierTestRunPlanItem => ({
+    specId: spec.id,
+    reason: reasonFor(impact.reasons, spec.id) ?? 'selected',
+    commandIds: spec.commands,
+    fixtureIds: uniqueStrings(spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : [])),
+    artifacts: uniqueStrings(spec.artifacts.concat(spec.expect.artifacts))
+  }));
+  const now = readNow(input.now);
+  return {
+    kind: FRONTIER_TEST_RUN_PLAN_KIND,
+    version: FRONTIER_TEST_RUN_PLAN_VERSION,
+    id: 'test-plan:' + stableHash([compiled.manifest.id, input.mode ?? 'selected', items.map((item) => item.specId), now]),
+    manifestId: compiled.manifest.id,
+    mode: input.mode ?? 'selected',
+    createdAt: now,
+    specIds: items.map((item) => item.specId),
+    commandIds: uniqueStrings(items.flatMap((item) => item.commandIds)),
+    fixtureIds: uniqueStrings(items.flatMap((item) => item.fixtureIds)),
+    artifacts: uniqueStrings(items.flatMap((item) => item.artifacts)),
+    items,
+    impact,
+    summary: summarizeManifest(specs, compiled.manifest.fixtures, compiled.manifest.commands, impact.covers, impact.artifacts),
+    ...(input.shard ? { shard: { index: Math.max(0, Math.floor(input.shard.index)), count: Math.max(1, Math.floor(input.shard.count)) } } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+export function recordTestRun(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: FrontierTestRunInput = {}
+): FrontierTestRunRecord {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const results = (input.results ?? []).map(normalizeResult);
+  const startedAt = input.startedAt ?? Date.now();
+  const finishedAt = input.finishedAt ?? startedAt + results.reduce((sum, result) => sum + result.durationMs, 0);
+  const summary = summarizeRun(results);
+  const status = input.status ?? statusFromSummary(summary);
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(results.flatMap((result) => result.artifacts)));
+  const traceIds = uniqueStrings((input.traceIds ?? []).concat(results.flatMap((result) => result.traceIds)));
+  return {
+    kind: FRONTIER_TEST_RUN_KIND,
+    version: FRONTIER_TEST_RUN_VERSION,
+    id: input.id ?? 'test-run:' + stableHash([compiled.manifest.id, input.planId ?? '', startedAt, results.map((result) => [result.specId, result.status])]),
+    manifestId: compiled.manifest.id,
+    ...(input.planId ? { planId: input.planId } : {}),
+    mode: input.mode ?? 'record',
+    status,
+    startedAt,
+    finishedAt,
+    durationMs: Math.max(0, finishedAt - startedAt),
+    commandIds: uniqueStrings(input.commandIds),
+    results,
+    artifacts,
+    traceIds,
+    summary,
+    coverage: summarizeTestCoverage(compiled, { specIds: results.map((result) => result.specId) }),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+export function summarizeTestCoverage(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: { specIds?: readonly string[]; targets?: readonly string[] } = {}
+): FrontierTestCoverageSummary {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const specs = input.specIds ? specsForIds(compiled.specsById, input.specIds) : compiled.manifest.specs;
+  const covered = uniqueStrings(specs.flatMap(coverIdsOf));
+  const targets = uniqueStrings(input.targets ?? compiled.manifest.coverageTargets);
+  const uncovered = targets.filter((target) => !covered.includes(target));
+  const byKind: Record<string, string[]> = {};
+  for (const id of covered) {
+    const kind = kindFromId(id);
+    (byKind[kind] ??= []).push(id);
+  }
+  for (const key of Object.keys(byKind)) byKind[key] = uniqueStrings(byKind[key]).sort();
+  return {
+    kind: 'frontier.test.coverage',
+    version: 1,
+    manifestId: compiled.manifest.id,
+    covered,
+    uncovered,
+    byKind,
+    specIds: specs.map((spec) => spec.id),
+    coverageRatio: targets.length === 0 ? 1 : (targets.length - uncovered.length) / targets.length
+  };
+}
+
+export function diffTestRuns(left: FrontierTestRunRecord, right: FrontierTestRunRecord): FrontierTestRunDiff {
+  const leftById = new Map(left.results.map((result) => [result.specId, result]));
+  const rightById = new Map(right.results.map((result) => [result.specId, result]));
+  const added: string[] = [];
+  const removed: string[] = [];
+  const statusChanged: Array<{ specId: string; from: FrontierTestStatus; to: FrontierTestStatus }> = [];
+  const durationChanged: Array<{ specId: string; fromMs: number; toMs: number; deltaMs: number }> = [];
+  const artifactChanged: string[] = [];
+  for (const [id, result] of rightById) {
+    const previous = leftById.get(id);
+    if (!previous) {
+      added.push(id);
+      continue;
+    }
+    if (previous.status !== result.status) statusChanged.push({ specId: id, from: previous.status, to: result.status });
+    const deltaMs = result.durationMs - previous.durationMs;
+    if (Math.abs(deltaMs) > Math.max(5, previous.durationMs * 0.2)) durationChanged.push({ specId: id, fromMs: previous.durationMs, toMs: result.durationMs, deltaMs });
+    if (previous.artifacts.join('\0') !== result.artifacts.join('\0')) artifactChanged.push(id);
+  }
+  for (const id of leftById.keys()) if (!rightById.has(id)) removed.push(id);
+  return {
+    kind: 'frontier.test.run-diff',
+    version: 1,
+    leftRunId: left.id,
+    rightRunId: right.id,
+    added,
+    removed,
+    statusChanged,
+    durationChanged,
+    artifactChanged,
+    summary: { changed: statusChanged.length + durationChanged.length + artifactChanged.length, added: added.length, removed: removed.length }
+  };
+}
+
+export function createTestRegistryGraph(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  options: { generatedAt?: number; package?: string; metadata?: JsonObject } = {}
+): FrontierRegistryGraph {
+  const manifest = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled.manifest : manifestOrCompiled;
+  const entries: FrontierRegistryEntry[] = [{
+    id: 'test-manifest:' + manifest.id,
+    kind: 'test-manifest',
+    description: manifest.description ?? manifest.title,
+    package: options.package ?? manifest.package,
+    feature: manifest.feature,
+    owner: manifest.owner,
+    source: manifest.source,
+    reads: manifest.specs.flatMap((spec) => spec.sourceFiles),
+    writes: manifest.artifacts,
+    calls: manifest.specs.map((spec) => 'test-spec:' + spec.id),
+    tags: manifest.tags,
+    metadata: { summary: toJsonObject(manifest.summary) }
+  }];
+  const edges: FrontierRegistryEdge[] = [];
+  for (const fixture of manifest.fixtures) {
+    entries.push({ id: 'test-fixture:' + fixture.id, kind: 'test-fixture', owner: fixture.owners[0], reads: fixture.sourceFiles, writes: [], tags: fixture.tags });
+    edges.push({ from: 'test-manifest:' + manifest.id, to: 'test-fixture:' + fixture.id, kind: 'declares-fixture' });
+  }
+  for (const command of manifest.commands) {
+    entries.push({ id: 'test-command:' + command.id, kind: 'test-command', package: command.package ?? manifest.package, reads: command.sourceFiles, writes: command.artifacts, tags: command.tags });
+    edges.push({ from: 'test-manifest:' + manifest.id, to: 'test-command:' + command.id, kind: 'declares-command' });
+  }
+  for (const spec of manifest.specs) {
+    entries.push(registryEntryForSpec(manifest, spec));
+    edges.push({ from: 'test-manifest:' + manifest.id, to: 'test-spec:' + spec.id, kind: 'owns' });
+    for (const cover of coverIdsOf(spec)) edges.push({ from: 'test-spec:' + spec.id, to: cover, kind: 'covers' });
+    for (const fixture of spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : [])) edges.push({ from: 'test-spec:' + spec.id, to: 'test-fixture:' + fixture, kind: 'uses-fixture' });
+    for (const command of spec.commands) edges.push({ from: 'test-spec:' + spec.id, to: 'test-command:' + command, kind: 'runs-command' });
+    for (const patch of spec.expect.patches) edges.push({ from: 'test-spec:' + spec.id, to: patch, kind: 'expects-patch' });
+    for (const artifact of spec.artifacts.concat(spec.expect.artifacts)) edges.push({ from: 'test-spec:' + spec.id, to: artifact, kind: 'produces-artifact' });
+  }
+  return createFrontierRegistryGraph({ generatedAt: options.generatedAt, entries, edges, metadata: options.metadata });
+}
+
+export function encodeTestJsonl(values: readonly unknown[]): string {
+  return values.map((value) => JSON.stringify(value)).join('\n') + (values.length ? '\n' : '');
+}
+
+export function decodeTestJsonl(text: string): JsonValue[] {
+  return text.split(/\r?\n/).filter((line) => line.trim().length !== 0).map((line) => JSON.parse(line) as JsonValue);
+}
+
+export function encodeTestTap(run: FrontierTestRunRecord): string {
+  const lines = ['TAP version 13', '1..' + run.results.length];
+  run.results.forEach((result, index) => {
+    const ok = result.status === 'passed' || result.status === 'skipped' || result.status === 'todo';
+    const directive = result.status === 'skipped' ? ' # SKIP' : result.status === 'todo' ? ' # TODO' : '';
+    lines.push((ok ? 'ok ' : 'not ok ') + (index + 1) + ' - ' + escapeTapName(result.specId) + directive);
+    if (result.error) lines.push('  ---', '  message: ' + JSON.stringify(result.error), '  ...');
+  });
+  return lines.join('\n') + '\n';
+}
+
+export function decodeTestTap(text: string, options: { manifestId?: string; now?: number } = {}): FrontierTestRunRecord {
+  const results: FrontierTestResultInput[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const match = /^(not ok|ok)\s+\d+\s+-\s+(.+?)(?:\s+#\s+(SKIP|TODO).*)?$/i.exec(line.trim());
+    if (!match) continue;
+    const name = match[2] ?? 'tap-test';
+    const directive = (match[3] ?? '').toUpperCase();
+    results.push({
+      specId: name,
+      status: directive === 'SKIP' ? 'skipped' : directive === 'TODO' ? 'todo' : match[1] === 'ok' ? 'passed' : 'failed'
+    });
+  }
+  return recordTestRun(createTestManifest({ id: options.manifestId ?? 'tap', specs: results.map((result) => ({ id: result.specId, expect: { assertions: ['tap'] } })) }), {
+    id: 'tap-run:' + stableHash(text),
+    startedAt: options.now ?? 0,
+    finishedAt: options.now ?? 0,
+    results
+  });
+}
+
+export function encodeTestJunitXml(run: FrontierTestRunRecord): string {
+  const attrs = 'tests="' + run.summary.total + '" failures="' + run.summary.failed + '" skipped="' + (run.summary.skipped + run.summary.todo) + '" time="' + (run.summary.durationMs / 1000).toFixed(3) + '"';
+  const cases = run.results.map((result) => {
+    const body = result.status === 'failed'
+      ? '<failure message="' + xmlEscape(result.error ?? 'failed') + '"></failure>'
+      : result.status === 'skipped' || result.status === 'todo'
+        ? '<skipped></skipped>'
+        : '';
+    return '<testcase name="' + xmlEscape(result.specId) + '" time="' + (result.durationMs / 1000).toFixed(3) + '">' + body + '</testcase>';
+  }).join('');
+  return '<?xml version="1.0" encoding="UTF-8"?><testsuite name="' + xmlEscape(run.manifestId) + '" ' + attrs + '>' + cases + '</testsuite>';
+}
+
+export function decodeTestJunitXml(xml: string, options: { manifestId?: string; now?: number } = {}): FrontierTestRunRecord {
+  const results: FrontierTestResultInput[] = [];
+  const re = /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>|<testcase\b([^>]*)\/>/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(xml)) !== null) {
+    const attrs = parseXmlAttrs(match[1] ?? match[3] ?? '');
+    const body = match[2] ?? '';
+    const name = attrs.name ?? 'junit-test-' + results.length;
+    results.push({
+      specId: name,
+      status: body.includes('<failure') || body.includes('<error') ? 'failed' : body.includes('<skipped') ? 'skipped' : 'passed',
+      durationMs: Math.round(Number(attrs.time ?? 0) * 1000)
+    });
+  }
+  return recordTestRun(createTestManifest({ id: options.manifestId ?? 'junit', specs: results.map((result) => ({ id: result.specId, expect: { assertions: ['junit'] } })) }), {
+    id: 'junit-run:' + stableHash(xml),
+    startedAt: options.now ?? 0,
+    finishedAt: options.now ?? 0,
+    results
+  });
+}
+
+export function redactTestValue<T extends JsonValue | FrontierTestManifest | FrontierTestRunRecord | FrontierTestRunPlan>(
+  value: T,
+  redactions: readonly string[] = ['token', 'secret', 'password', 'authorization', 'cookie', 'credential', 'apiKey']
+): T {
+  return redactValue(value, redactions) as T;
+}
+
+export function createTestProof(
+  value: FrontierTestManifest | FrontierTestRunRecord | FrontierTestCoverageSummary | FrontierTestRunPlan,
+  options: { generatedAt?: number; metadata?: unknown } = {}
+): FrontierTestProof {
+  const generatedAt = options.generatedAt ?? Date.now();
+  const manifestId = isTestManifest(value) ? value.id : 'manifestId' in value ? value.manifestId : 'tests';
+  const summary = isTestManifest(value) || isTestRunRecord(value) || isRunPlan(value) ? value.summary : value;
+  return {
+    kind: FRONTIER_TEST_PROOF_KIND,
+    version: FRONTIER_TEST_PROOF_VERSION,
+    manifestId,
+    generatedAt,
+    hash: stableHash(redactTestValue(value as JsonValue | FrontierTestManifest | FrontierTestRunRecord | FrontierTestRunPlan)),
+    summary,
+    ...(isTestManifest(value) ? { validation: validateTestManifest(value) } : {}),
+    ...optionalObject('metadata', options.metadata)
+  };
+}
+
+function normalizeSpec(input: FrontierTestSpecInput): FrontierTestSpec {
+  const id = normalizeId(input.id, 'test spec id');
+  const when = normalizeWhen(input.when);
+  const expect = normalizeExpectation(input.expect);
+  const given = normalizeGiven(input.given);
+  const sourceFile = typeof input.source === 'string' ? input.source : undefined;
+  const sourceFiles = uniqueStrings([sourceFile, ...(input.sourceFiles ?? [])].filter((file): file is string => !!file).map(normalizeFilePath));
+  const actions = uniqueStrings((input.actions ?? []).concat(when.action ? [when.action] : [], when.tool ? [when.tool] : []));
+  const effects = uniqueStrings((input.effects ?? []).concat(when.effect ? [when.effect] : [], expect.effects));
+  const routes = uniqueStrings((input.routes ?? []).concat(when.route ? [when.route] : [], given.route ? [given.route] : [], expect.routes));
+  const policies = uniqueStrings((input.policies ?? []).concat(expect.policies));
+  const workflows = uniqueStrings((input.workflows ?? []).concat(when.workflow ? [when.workflow] : []));
+  const migrations = uniqueStrings((input.migrations ?? []).concat(when.migration ? [when.migration] : []));
+  const fixtures = uniqueStrings((input.fixtures ?? []).concat(given.fixtures));
+  return {
+    kind: FRONTIER_TEST_SPEC_KIND,
+    version: FRONTIER_TEST_SPEC_VERSION,
+    id,
+    testKind: input.kind ?? kindFromId(id),
+    title: input.title ?? titleFromId(id),
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.feature ? { feature: input.feature } : {}),
+    given,
+    when,
+    expect,
+    covers: uniqueStrings(input.covers),
+    actions,
+    effects,
+    routes,
+    policies,
+    views: uniqueStrings(input.views),
+    workflows,
+    migrations,
+    statePaths: uniqueStrings((input.statePaths ?? []).concat(expect.patches)),
+    resources: uniqueStrings(input.resources),
+    fixtures,
+    commands: uniqueStrings(input.commands),
+    gates: uniqueStrings(input.gates),
+    artifacts: uniqueStrings((input.artifacts ?? []).concat(expect.artifacts)),
+    ...(input.replayOf ? { replayOf: input.replayOf } : {}),
+    ...(input.fuzzer ? { fuzzer: input.fuzzer } : {}),
+    ...(input.benchmark ? { benchmark: input.benchmark } : {}),
+    owners: uniqueStrings(input.owners),
+    ...(input.package ? { package: input.package } : {}),
+    sourceFiles,
+    tags: uniqueStrings(input.tags),
+    priority: input.priority ?? priorityForKind(input.kind ?? kindFromId(id)),
+    ...(input.timeoutMs !== undefined ? { timeoutMs: Math.max(0, Math.floor(input.timeoutMs)) } : {}),
+    retries: Math.max(0, Math.floor(input.retries ?? 0)),
+    ...(typeof input.source === 'object' ? { source: input.source } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeGiven(input: FrontierTestGivenInput = {}): FrontierTestGiven {
+  return {
+    ...(input.stateFixture ? { stateFixture: input.stateFixture } : {}),
+    fixtures: uniqueStrings(input.fixtures),
+    ...(input.route ? { route: input.route } : {}),
+    ...(input.actor ? { actor: input.actor } : {}),
+    capabilities: uniqueStrings(input.capabilities),
+    files: uniqueStrings((input.files ?? []).map(normalizeFilePath)),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeWhen(input: FrontierTestWhenInput = {}): FrontierTestWhen {
+  return {
+    ...(input.action ? { action: input.action } : {}),
+    ...(input.tool ? { tool: input.tool } : {}),
+    ...(input.workflow ? { workflow: input.workflow } : {}),
+    ...(input.migration ? { migration: input.migration } : {}),
+    ...(input.effect ? { effect: input.effect } : {}),
+    ...(input.route ? { route: input.route } : {}),
+    ...optionalObject('input', input.input),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeExpectation(input: FrontierTestExpectationInput = {}): FrontierTestExpectation {
+  return {
+    patches: uniqueStrings((input.patches ?? []).map((patch) => typeof patch === 'string' ? patch : patch.path ?? patch.op ?? 'patch')),
+    effects: uniqueStrings(input.effects),
+    routes: uniqueStrings((input.routes ?? []).concat(input.route ? [input.route] : [])),
+    policies: uniqueStrings((input.policies ?? []).concat(input.policy ?? [])),
+    traces: uniqueStrings(input.traces),
+    artifacts: uniqueStrings(input.artifacts),
+    assertions: uniqueStrings(input.assertions),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeFixture(input: FrontierTestFixtureInput): FrontierTestFixture {
+  const sourceFile = typeof input.source === 'string' ? input.source : undefined;
+  return {
+    id: normalizeId(input.id, 'test fixture id'),
+    kind: input.kind ?? kindFromId(input.id),
+    sourceFiles: uniqueStrings([sourceFile, ...(input.files ?? [])].filter((file): file is string => !!file).map(normalizeFilePath)),
+    ...(input.stateFixture ? { stateFixture: input.stateFixture } : {}),
+    ...optionalObject('data', input.data),
+    owners: uniqueStrings(input.owners),
+    tags: uniqueStrings(input.tags),
+    ...(typeof input.source === 'object' ? { source: input.source } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeCommand(input: FrontierTestCommandInput): FrontierTestCommand {
+  const sourceFile = typeof input.source === 'string' ? input.source : undefined;
+  return {
+    id: normalizeId(input.id, 'test command id'),
+    command: normalizeId(input.command, 'test command'),
+    args: (input.args ?? []).map(String),
+    ...(input.cwd ? { cwd: normalizeFilePath(input.cwd) } : {}),
+    ...(input.env ? { env: toJsonObject(input.env) } : {}),
+    kind: input.kind ?? kindFromId(input.id),
+    ...(input.package ? { package: input.package } : {}),
+    sourceFiles: sourceFile ? [normalizeFilePath(sourceFile)] : [],
+    ...(input.timeoutMs !== undefined ? { timeoutMs: Math.max(0, Math.floor(input.timeoutMs)) } : {}),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    tags: uniqueStrings(input.tags),
+    ...(typeof input.source === 'object' ? { source: input.source } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeResult(input: FrontierTestResultInput): FrontierTestResult {
+  return {
+    specId: normalizeId(input.specId, 'test result spec id'),
+    status: input.status,
+    durationMs: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    attempts: Math.max(1, Math.floor(input.attempts ?? 1)),
+    patches: uniqueStrings(input.patches),
+    effects: uniqueStrings(input.effects),
+    routes: uniqueStrings((input.routes ?? []).concat(input.route ? [input.route] : [])),
+    policies: uniqueStrings(input.policies),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    traceIds: uniqueStrings(input.traceIds),
+    ...(input.error ? { error: input.error } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function summarizeManifest(
+  specs: readonly FrontierTestSpec[],
+  fixtures: readonly FrontierTestFixture[],
+  commands: readonly FrontierTestCommand[],
+  coverageTargets: readonly string[],
+  artifacts: readonly string[]
+): FrontierTestSummary {
+  return {
+    specCount: specs.length,
+    fixtureCount: fixtures.length,
+    commandCount: commands.length,
+    featureCount: uniqueStrings(specs.map((spec) => spec.feature)).length,
+    coverCount: coverageTargets.length,
+    actionCount: uniqueStrings(specs.flatMap((spec) => spec.actions)).length,
+    effectCount: uniqueStrings(specs.flatMap((spec) => spec.effects.concat(spec.expect.effects))).length,
+    routeCount: uniqueStrings(specs.flatMap((spec) => spec.routes.concat(spec.expect.routes))).length,
+    policyCount: uniqueStrings(specs.flatMap((spec) => spec.policies.concat(spec.expect.policies))).length,
+    workflowCount: uniqueStrings(specs.flatMap((spec) => spec.workflows)).length,
+    migrationCount: uniqueStrings(specs.flatMap((spec) => spec.migrations)).length,
+    statePathCount: uniqueStrings(specs.flatMap((spec) => spec.statePaths)).length,
+    artifactCount: artifacts.length,
+    fuzzSpecCount: specs.filter((spec) => spec.testKind === 'fuzz' || !!spec.fuzzer).length,
+    benchmarkSpecCount: specs.filter((spec) => spec.testKind === 'benchmark' || !!spec.benchmark).length,
+    replaySpecCount: specs.filter((spec) => spec.testKind === 'replay' || !!spec.replayOf).length
+  };
+}
+
+function summarizeRun(results: readonly FrontierTestResult[]): FrontierTestRunSummary {
+  const summary: FrontierTestRunSummary = { total: results.length, passed: 0, failed: 0, skipped: 0, todo: 0, flaky: 0, blocked: 0, unknown: 0, durationMs: 0 };
+  for (const result of results) {
+    summary.durationMs += result.durationMs;
+    summary[result.status] += 1;
+  }
+  return summary;
+}
+
+function statusFromSummary(summary: FrontierTestRunSummary): FrontierTestStatus {
+  if (summary.failed) return 'failed';
+  if (summary.blocked) return 'blocked';
+  if (summary.flaky) return 'flaky';
+  if (summary.total === 0) return 'unknown';
+  return 'passed';
+}
+
+function coverIdsOf(spec: FrontierTestSpec): string[] {
+  return uniqueStrings(
+    spec.covers
+      .concat(spec.actions, spec.effects, spec.routes, spec.policies, spec.views, spec.workflows, spec.migrations, spec.resources)
+      .concat(spec.statePaths.map((path) => 'path:' + path))
+      .concat(spec.fuzzer ? ['fuzzer:' + spec.fuzzer] : [])
+      .concat(spec.benchmark ? ['benchmark:' + spec.benchmark] : [])
+  );
+}
+
+function matchesQuery(spec: FrontierTestSpec, input: FrontierTestQueryInput): boolean {
+  if (input.ids && !input.ids.includes(spec.id)) return false;
+  if (input.kinds && !input.kinds.includes(spec.testKind)) return false;
+  if (input.covers && !overlaps(input.covers, coverIdsOf(spec))) return false;
+  if (input.actions && !overlaps(input.actions, spec.actions)) return false;
+  if (input.effects && !overlaps(input.effects, spec.effects.concat(spec.expect.effects))) return false;
+  if (input.routes && !overlaps(input.routes, spec.routes.concat(spec.expect.routes))) return false;
+  if (input.policies && !overlaps(input.policies, spec.policies.concat(spec.expect.policies))) return false;
+  if (input.workflows && !overlaps(input.workflows, spec.workflows)) return false;
+  if (input.migrations && !overlaps(input.migrations, spec.migrations)) return false;
+  if (input.statePaths && !overlaps(input.statePaths, spec.statePaths)) return false;
+  if (input.resources && !overlaps(input.resources, spec.resources)) return false;
+  if (input.fixtures && !overlaps(input.fixtures, spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : []))) return false;
+  if (input.commands && !overlaps(input.commands, spec.commands)) return false;
+  if (input.artifacts && !overlaps(input.artifacts, spec.artifacts.concat(spec.expect.artifacts))) return false;
+  if (input.fuzzers && !input.fuzzers.includes(spec.fuzzer ?? '')) return false;
+  if (input.benchmarks && !input.benchmarks.includes(spec.benchmark ?? '')) return false;
+  if (input.views && !overlaps(input.views, spec.views)) return false;
+  if (input.features && (!spec.feature || !input.features.includes(spec.feature))) return false;
+  if (input.packages && (!spec.package || !input.packages.includes(spec.package))) return false;
+  if (input.owners && !overlaps(input.owners, spec.owners)) return false;
+  if (input.tags && !overlaps(input.tags, spec.tags)) return false;
+  return true;
+}
+
+function registryEntryForSpec(manifest: FrontierTestManifest, spec: FrontierTestSpec): FrontierRegistryEntry {
+  return {
+    id: 'test-spec:' + spec.id,
+    kind: spec.testKind,
+    description: spec.description ?? spec.title,
+    package: spec.package ?? manifest.package,
+    feature: spec.feature ?? manifest.feature,
+    owner: spec.owners[0] ?? manifest.owner,
+    source: spec.source,
+    reads: spec.sourceFiles.concat(spec.given.files, spec.fixtures, spec.statePaths, spec.resources),
+    writes: spec.artifacts.concat(spec.expect.artifacts),
+    calls: spec.commands.concat(spec.actions, spec.workflows, spec.migrations),
+    dependsOn: spec.fixtures.concat(spec.commands),
+    affects: coverIdsOf(spec),
+    tags: spec.tags,
+    metadata: {
+      expectedPatches: spec.expect.patches,
+      expectedEffects: spec.expect.effects,
+      expectedRoutes: spec.expect.routes,
+      expectedPolicies: spec.expect.policies
+    }
+  };
+}
+
+function impactEntries(manifest: FrontierTestManifest, specs: readonly FrontierTestSpec[]): FrontierRegistryEntry[] {
+  const entries: FrontierRegistryEntry[] = [];
+  if (specs.length) {
+    entries.push({
+      id: 'test-manifest:' + manifest.id,
+      kind: 'test-manifest',
+      package: manifest.package,
+      feature: manifest.feature,
+      owner: manifest.owner,
+      reads: uniqueStrings(specs.flatMap((spec) => spec.sourceFiles)),
+      writes: uniqueStrings(specs.flatMap((spec) => spec.artifacts.concat(spec.expect.artifacts))),
+      tags: manifest.tags
+    });
+  }
+  for (const spec of specs) entries.push(registryEntryForSpec(manifest, spec));
+  return entries;
+}
+
+function impactEdges(specs: readonly FrontierTestSpec[]): FrontierRegistryEdge[] {
+  const edges: FrontierRegistryEdge[] = [];
+  for (const spec of specs) {
+    for (const cover of coverIdsOf(spec)) edges.push({ from: 'test-spec:' + spec.id, to: cover, kind: 'covers' });
+    for (const fixture of spec.fixtures.concat(spec.given.fixtures, spec.given.stateFixture ? [spec.given.stateFixture] : [])) edges.push({ from: 'test-spec:' + spec.id, to: 'test-fixture:' + fixture, kind: 'uses-fixture' });
+    for (const command of spec.commands) edges.push({ from: 'test-spec:' + spec.id, to: 'test-command:' + command, kind: 'runs-command' });
+  }
+  return edges;
+}
+
+function seedIndexed(
+  specsById: ReadonlyMap<string, FrontierTestSpec>,
+  values: readonly string[] | undefined,
+  seeds: Set<string>,
+  touched: Set<string>,
+  reasons: FrontierTestImpactReason[],
+  reason: string
+): void {
+  for (const value of values ?? []) {
+    seeds.add(value);
+    if (specsById.has(value)) markTouched(touched, reasons, value, value, reason);
+  }
+}
+
+function seedIndex(
+  index: ReadonlyMap<string, readonly string[]>,
+  values: readonly string[] | undefined,
+  seeds: Set<string>,
+  touched: Set<string>,
+  reasons: FrontierTestImpactReason[],
+  reason: string
+): void {
+  for (const value of values ?? []) {
+    seeds.add(value);
+    for (const specId of index.get(value) ?? []) markTouched(touched, reasons, specId, value, reason);
+  }
+}
+
+function markTouched(touched: Set<string>, reasons: FrontierTestImpactReason[], specId: string, targetId: string | undefined, reason: string): void {
+  touched.add(specId);
+  reasons.push({ specId, ...(targetId ? { targetId } : {}), reason });
+}
+
+function hasImpactSelector(input: FrontierTestImpactInput): boolean {
+  return Object.keys(input).some((key) => key !== 'expectedCoverage' && key !== 'limit' && key !== 'mode' && key !== 'now' && key !== 'metadata');
+}
+
+function specsForIds(specsById: ReadonlyMap<string, FrontierTestSpec>, ids: readonly string[]): FrontierTestSpec[] {
+  const out: FrontierTestSpec[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const spec = specsById.get(id);
+    if (spec) out.push(spec);
+  }
+  return out;
+}
+
+function compareSpecPriority(left: FrontierTestSpec, right: FrontierTestSpec): number {
+  return right.priority - left.priority || left.id.localeCompare(right.id);
+}
+
+function priorityForKind(kind: string): number {
+  if (kind === 'smoke' || kind === 'boundary' || kind === 'release') return 90;
+  if (kind === 'fuzz' || kind === 'replay') return 80;
+  if (kind === 'benchmark') return 70;
+  return 50;
+}
+
+function reasonFor(reasons: readonly FrontierTestImpactReason[], id: string): string | undefined {
+  return reasons.find((reason) => reason.specId === id)?.reason;
+}
+
+function uniqueReasons(reasons: readonly FrontierTestImpactReason[]): FrontierTestImpactReason[] {
+  const seen = new Set<string>();
+  const out: FrontierTestImpactReason[] = [];
+  for (const reason of reasons) {
+    const key = reason.specId + '\0' + (reason.targetId ?? '') + '\0' + reason.reason;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(reason);
+  }
+  return out;
+}
+
+function isTestManifest(value: unknown): value is FrontierTestManifest {
+  return !!value && typeof value === 'object' && (value as { kind?: unknown }).kind === FRONTIER_TEST_MANIFEST_KIND;
+}
+
+function isCompiledTestManifest(value: unknown): value is FrontierCompiledTestManifest {
+  return !!value && typeof value === 'object' && (value as { kind?: unknown }).kind === 'frontier.test.compiled';
+}
+
+function isRunPlan(value: unknown): value is FrontierTestRunPlan {
+  return !!value && typeof value === 'object' && (value as { kind?: unknown }).kind === FRONTIER_TEST_RUN_PLAN_KIND;
+}
+
+function isTestRunRecord(value: unknown): value is FrontierTestRunRecord {
+  return !!value && typeof value === 'object' && (value as { kind?: unknown }).kind === FRONTIER_TEST_RUN_KIND;
+}
+
+function cloneTestManifest(manifest: FrontierTestManifest): FrontierTestManifest {
+  return cloneJson(manifest as unknown as JsonValue) as unknown as FrontierTestManifest;
+}
+
+function kindFromId(id: string): string {
+  const index = id.indexOf(':');
+  if (index > 0) return id.slice(0, index);
+  const lower = id.toLowerCase();
+  if (lower.includes('fuzz')) return 'fuzz';
+  if (lower.includes('bench')) return 'benchmark';
+  if (lower.includes('playwright') || lower.includes('e2e')) return 'playwright';
+  if (lower.includes('policy')) return 'policy';
+  if (lower.includes('workflow')) return 'workflow';
+  if (lower.includes('migration')) return 'migration';
+  if (lower.includes('boundary')) return 'boundary';
+  return 'unit';
+}
+
+function titleFromId(id: string): string {
+  const base = id.includes(':') ? id.slice(id.indexOf(':') + 1) : id;
+  return base.split(/[._/-]+/g).filter(Boolean).map((part) => part.slice(0, 1).toUpperCase() + part.slice(1)).join(' ') || id;
+}
+
+function normalizeId(value: string, label: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) throw new TypeError(label + ' must be a non-empty string');
+  return value.trim();
+}
+
+function normalizeFilePath(value: string): string {
+  const trimmed = normalizeId(value, 'test file path').replace(/\\/g, '/');
+  return trimmed.replace(/([^:])\/{2,}/g, '$1/').replace(/^\.\//, '');
+}
+
+function freezeMapLists(map: Map<string, string[]>): ReadonlyMap<string, readonly string[]> {
+  for (const [key, value] of map) map.set(key, uniqueStrings(value));
+  return map;
+}
+
+function pushMap(map: Map<string, string[]>, key: string, value: string): void {
+  const list = map.get(key);
+  if (list) {
+    if (!list.includes(value)) list.push(value);
+  } else {
+    map.set(key, [value]);
+  }
+}
+
+function pushSet(target: Set<string>, values: readonly string[]): void {
+  for (const value of values) target.add(value);
+}
+
+function uniqueStrings(values: readonly (string | undefined)[] | undefined): string[] {
+  const out: string[] = [];
+  for (const value of values ?? []) {
+    if (!value) continue;
+    if (!out.includes(value)) out.push(value);
+  }
+  return out;
+}
+
+function overlaps(left: readonly string[], right: readonly string[]): boolean {
+  for (const value of left) if (right.includes(value)) return true;
+  return false;
+}
+
+function hasValues(value: readonly unknown[] | undefined): boolean {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function optionalObject(key: string, value: unknown): Record<string, JsonObject> {
+  if (value === undefined) return {};
+  const json = toJsonValue(value);
+  return json && typeof json === 'object' && !Array.isArray(json) ? { [key]: json as JsonObject } : { [key]: { value: json } };
+}
+
+function toJsonObject(value: unknown): JsonObject {
+  const json = toJsonValue(value);
+  return json && typeof json === 'object' && !Array.isArray(json) ? json as JsonObject : { value: json };
+}
+
+function toJsonValue(value: unknown): JsonValue {
+  if (value === undefined) return null;
+  return JSON.parse(JSON.stringify(value)) as JsonValue;
+}
+
+function redactValue(value: unknown, redactions: readonly string[]): unknown {
+  if (Array.isArray(value)) return value.map((item) => redactValue(item, redactions));
+  if (!value || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = redactions.some((pattern) => key.toLowerCase().includes(pattern.toLowerCase()))
+      ? '[redacted]'
+      : redactValue(entry, redactions);
+  }
+  return out;
+}
+
+function readNow(now?: number | (() => number)): number {
+  return typeof now === 'function' ? now() : now ?? Date.now();
+}
+
+function escapeTapName(value: string): string {
+  return value.replace(/\r?\n/g, ' ');
+}
+
+function xmlEscape(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function parseXmlAttrs(text: string): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  const re = /([A-Za-z_:][-A-Za-z0-9_:.]*)="([^"]*)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) attrs[match[1] ?? ''] = (match[2] ?? '').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  return attrs;
+}
+
+function stableHash(value: unknown): string {
+  const text = stableStringify(value);
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+  const object = value as Record<string, unknown>;
+  return '{' + Object.keys(object).sort().map((key) => JSON.stringify(key) + ':' + stableStringify(object[key])).join(',') + '}';
+}
