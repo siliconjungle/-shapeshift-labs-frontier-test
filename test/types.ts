@@ -16,7 +16,7 @@ import {
   type FrontierTestManifest,
   type FrontierTestRunRecord,
   type FrontierTestSpec
-} from '../src/index.js';
+} from '../src/index.ts';
 
 const spec: FrontierTestSpec = {
   kind: 'frontier.test.spec',
