@@ -181,6 +181,7 @@ const plan = planTestRun(tests, {
 - `createTestManifest`, `defineSpec`, `compileTestManifest`, `validateTestManifest`, and `queryTestManifest` describe declarative test/spec evidence.
 - `traceTestImpact` answers which specs cover changed actions, effects, routes, policies, views, workflows, migrations, state paths, resources, fixtures, commands, files, tags, owners, or artifacts.
 - `planTestRun`, `recordTestRun`, `diffTestRuns`, and `summarizeTestCoverage` connect expected coverage to actual run evidence.
+- `collectTestEvidence` and `recordEvidenceTestRun` normalize structural browser, inspect, surface coverage, trace, log, and direct evidence observations into a `frontier.test.run` plus proof.
 - `createTestRegistryGraph` exposes specs, fixtures, commands, coverage targets, patches, and artifacts as Frontier registry entries and edges.
 - `encodeTestTap`, `decodeTestTap`, `encodeTestJunitXml`, and `decodeTestJunitXml` bridge common runner report formats without making them the source of truth.
 - `encodeTestJsonl`, `decodeTestJsonl`, `redactTestValue`, and `createTestProof` support replay bundles, trace attachments, and AI-readable proof records.
@@ -188,6 +189,8 @@ const plan = planTestRun(tests, {
 ## Test Evidence Boundary
 
 `@shapeshift-labs/frontier-playwright` samples runtime/browser evidence. `@shapeshift-labs/frontier-test` owns declarative test and spec evidence: what should be covered, what should change, what fixtures and commands are needed, what run results proved, and what remains uncovered.
+
+`recordEvidenceTestRun` accepts structural producer output such as Playwright timeline reports, inspect bundles, framework surface coverage reports, trace records, log records, or direct evidence observations. It matches those observations back to declared specs by spec id, feature, route, action, effect, policy, state path, artifact, trace id, or `covers` target, then emits one run record and proof for handoff.
 
 `@shapeshift-labs/frontier-tools`, `@shapeshift-labs/frontier-workflow`, `@shapeshift-labs/frontier-policy`, `@shapeshift-labs/frontier-route`, `@shapeshift-labs/frontier-manifest`, and `@shapeshift-labs/frontier-inspect` remain structural consumers. This package records that a spec covers an action, workflow, policy, route, feature, migration, fuzzer, or benchmark without importing those packages.
 

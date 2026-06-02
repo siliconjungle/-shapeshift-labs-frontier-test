@@ -21,6 +21,8 @@ export const FRONTIER_TEST_IMPACT_KIND = 'frontier.test.impact';
 export const FRONTIER_TEST_IMPACT_VERSION = 1;
 export const FRONTIER_TEST_PROOF_KIND = 'frontier.test.proof';
 export const FRONTIER_TEST_PROOF_VERSION = 1;
+export const FRONTIER_TEST_EVIDENCE_KIND = 'frontier.test.evidence';
+export const FRONTIER_TEST_EVIDENCE_VERSION = 1;
 
 export type FrontierTestKind =
   | 'unit'
@@ -551,6 +553,101 @@ export interface FrontierTestProof {
   metadata?: JsonObject;
 }
 
+export type FrontierTestEvidenceStatus = 'passed' | 'failed' | 'blocked' | 'unknown';
+
+export interface FrontierTestEvidenceObservationInput {
+  id?: string;
+  kind?: string;
+  source?: string;
+  status?: string | boolean;
+  target?: string;
+  targets?: readonly string[];
+  specId?: string;
+  feature?: string;
+  route?: string;
+  routes?: readonly string[];
+  action?: string;
+  actions?: readonly string[];
+  effect?: string;
+  effects?: readonly string[];
+  policy?: string;
+  policies?: readonly string[];
+  statePath?: string;
+  statePaths?: readonly string[];
+  artifact?: string;
+  artifacts?: readonly string[];
+  traceId?: string;
+  traceIds?: readonly string[];
+  required?: boolean;
+  message?: string;
+  tags?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestEvidenceObservation {
+  id: string;
+  kind: string;
+  source: string;
+  status: FrontierTestEvidenceStatus;
+  rawStatus?: string;
+  targets: string[];
+  specId?: string;
+  feature?: string;
+  routes: string[];
+  actions: string[];
+  effects: string[];
+  policies: string[];
+  statePaths: string[];
+  artifacts: string[];
+  traceIds: string[];
+  required: boolean;
+  message?: string;
+  tags: string[];
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestEvidenceSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  unknown: number;
+  required: number;
+  sourceCount: number;
+  artifactCount: number;
+  targetCount: number;
+}
+
+export interface FrontierTestEvidenceRecord {
+  kind: typeof FRONTIER_TEST_EVIDENCE_KIND;
+  version: typeof FRONTIER_TEST_EVIDENCE_VERSION;
+  generatedAt: number;
+  runId?: string;
+  observations: FrontierTestEvidenceObservation[];
+  summary: FrontierTestEvidenceSummary;
+}
+
+export interface FrontierTestEvidenceRunInput extends Omit<FrontierTestRunInput, 'results'> {
+  plan?: FrontierTestRunPlan;
+  specIds?: readonly string[];
+  results?: readonly FrontierTestResultInput[];
+  evidence?: readonly FrontierTestEvidenceObservationInput[];
+  playwrightReports?: readonly unknown[];
+  inspectBundles?: readonly unknown[];
+  surfaceCoverage?: unknown;
+  traceRecords?: readonly unknown[];
+  logRecords?: readonly unknown[];
+  failOnMissing?: boolean;
+  proofGeneratedAt?: number;
+  proofMetadata?: unknown;
+}
+
+export interface FrontierTestEvidenceRunRecord {
+  run: FrontierTestRunRecord;
+  proof: FrontierTestProof;
+  evidence: FrontierTestEvidenceRecord;
+}
+
 export function defineTestSpec(input: FrontierTestSpecInput): FrontierTestSpec {
   return normalizeSpec(input);
 }
@@ -893,6 +990,61 @@ export function recordTestRun(
   };
 }
 
+export function collectTestEvidence(input: FrontierTestEvidenceRunInput = {}): FrontierTestEvidenceRecord {
+  const generatedAt = input.startedAt ?? Date.now();
+  const observations = normalizeEvidenceObservations(input);
+  return {
+    kind: FRONTIER_TEST_EVIDENCE_KIND,
+    version: FRONTIER_TEST_EVIDENCE_VERSION,
+    generatedAt,
+    observations,
+    summary: summarizeTestEvidence(observations)
+  };
+}
+
+export function recordEvidenceTestRun(
+  manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
+  input: FrontierTestEvidenceRunInput = {}
+): FrontierTestEvidenceRunRecord {
+  const compiled = isCompiledTestManifest(manifestOrCompiled) ? manifestOrCompiled : compileTestManifest(manifestOrCompiled);
+  const collected = collectTestEvidence(input);
+  const specs = selectEvidenceSpecs(compiled, input, collected.observations);
+  const runObservations = collected.observations.filter((observation) => specs.some((spec) => evidenceMatchesSpec(observation, spec)));
+  const explicitResults = new Map((input.results ?? []).map((result) => [normalizeId(result.specId, 'test result spec id'), result]));
+  const generatedResults = specs.map((spec) => evidenceResultForSpec(spec, runObservations, input, explicitResults.get(spec.id)));
+  const startedAt = input.startedAt ?? collected.generatedAt;
+  const finishedAt = input.finishedAt ?? startedAt + generatedResults.reduce((sum, result) => sum + (result.durationMs ?? 0), 0);
+  const evidenceSummary = summarizeTestEvidence(runObservations);
+  const evidenceMetadata = {
+    ...metadataObject(input.metadata),
+    evidenceSummary
+  };
+  const run = recordTestRun(compiled, {
+    ...input,
+    startedAt,
+    finishedAt,
+    commandIds: uniqueStrings((input.commandIds ?? []).concat(input.plan?.commandIds ?? [])),
+    results: generatedResults,
+    artifacts: uniqueStrings((input.artifacts ?? []).concat(runObservations.flatMap((observation) => observation.artifacts))),
+    traceIds: uniqueStrings((input.traceIds ?? []).concat(runObservations.flatMap((observation) => observation.traceIds))),
+    metadata: evidenceMetadata
+  });
+  const evidence = {
+    ...collected,
+    runId: run.id,
+    observations: runObservations,
+    summary: evidenceSummary
+  };
+  const proof = createTestProof(run, {
+    generatedAt: input.proofGeneratedAt ?? finishedAt,
+    metadata: {
+      evidenceSummary: evidence.summary,
+      ...metadataObject(input.proofMetadata)
+    }
+  });
+  return { run, proof, evidence };
+}
+
 export function summarizeTestCoverage(
   manifestOrCompiled: FrontierTestManifest | FrontierCompiledTestManifest,
   input: { specIds?: readonly string[]; targets?: readonly string[] } = {}
@@ -1092,6 +1244,485 @@ export function createTestProof(
     ...(isTestManifest(value) ? { validation: validateTestManifest(value) } : {}),
     ...optionalObject('metadata', options.metadata)
   };
+}
+
+function normalizeEvidenceObservations(input: FrontierTestEvidenceRunInput): FrontierTestEvidenceObservation[] {
+  const raw = [
+    ...(input.evidence ?? []),
+    ...surfaceCoverageEvidence(input.surfaceCoverage),
+    ...playwrightReportEvidence(input.playwrightReports),
+    ...inspectBundleEvidence(input.inspectBundles),
+    ...traceRecordEvidence(input.traceRecords),
+    ...logRecordEvidence(input.logRecords)
+  ];
+  return raw.map((observation, index) => normalizeEvidenceObservation(observation, index));
+}
+
+function normalizeEvidenceObservation(input: FrontierTestEvidenceObservationInput, index: number): FrontierTestEvidenceObservation {
+  const status = normalizeEvidenceStatus(input.status);
+  const routes = uniqueStrings((input.routes ?? []).concat(input.route ? [input.route] : []));
+  const actions = uniqueStrings((input.actions ?? []).concat(input.action ? [input.action] : []));
+  const effects = uniqueStrings((input.effects ?? []).concat(input.effect ? [input.effect] : []));
+  const policies = uniqueStrings((input.policies ?? []).concat(input.policy ? [input.policy] : []));
+  const statePaths = uniqueStrings((input.statePaths ?? []).concat(input.statePath ? [input.statePath] : []));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(input.artifact ? [input.artifact] : [])).map(normalizeFilePath);
+  const traceIds = uniqueStrings((input.traceIds ?? []).concat(input.traceId ? [input.traceId] : []));
+  const targets = uniqueStrings([
+    input.target,
+    ...(input.targets ?? []),
+    input.specId ? 'spec:' + input.specId : undefined,
+    input.feature ? 'feature:' + input.feature : undefined,
+    ...routes.map(routeTarget),
+    ...actions.map((action) => 'action:' + action),
+    ...effects.map((effect) => 'effect:' + effect),
+    ...policies.map((policy) => 'policy:' + policy),
+    ...statePaths.map((path) => 'path:' + path),
+    ...artifacts.map((artifact) => 'artifact:' + artifact),
+    ...traceIds.map((traceId) => 'trace:' + traceId)
+  ]);
+  const rawStatus = typeof input.status === 'string' ? input.status : undefined;
+  return {
+    id: input.id ?? 'evidence:' + (index + 1),
+    kind: input.kind ?? kindFromId(input.id ?? input.target ?? 'evidence'),
+    source: input.source ?? 'evidence',
+    status,
+    ...(rawStatus && rawStatus !== status ? { rawStatus } : {}),
+    targets,
+    ...(input.specId ? { specId: input.specId } : {}),
+    ...(input.feature ? { feature: input.feature } : {}),
+    routes,
+    actions,
+    effects,
+    policies,
+    statePaths,
+    artifacts,
+    traceIds,
+    required: input.required !== false,
+    ...(input.message ? { message: input.message } : {}),
+    tags: uniqueStrings(input.tags),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function surfaceCoverageEvidence(value: unknown): FrontierTestEvidenceObservationInput[] {
+  const report = unknownRecord(value);
+  const records = arrayFromUnknown(report.records);
+  if (records.length === 0 && Object.keys(report).length === 0) return [];
+  const out: FrontierTestEvidenceObservationInput[] = [{
+    id: stringFrom(report.appId, 'app') + ':surface-coverage',
+    kind: 'surface-coverage',
+    source: 'surface-coverage',
+    status: report.ok === false ? 'failed' : 'passed',
+    target: 'surfaces:coverage',
+    artifact: stringFrom(report.reportFile),
+    required: true,
+    message: report.ok === false ? 'Surface coverage has missing required probes or contracts.' : 'Surface coverage reports ok.',
+    metadata: {
+      kind: stringFrom(report.kind),
+      summary: report.summary ?? null
+    }
+  }];
+  for (const item of records) {
+    const record = unknownRecord(item);
+    const surface = unknownRecord(record.surface);
+    const surfaceId = stringFrom(surface.id);
+    const surfaceKind = stringFrom(surface.kind);
+    const route = stringFrom(surface.route);
+    const feature = stringFrom(surface.feature);
+    const surfaceTargets = uniqueStrings([
+      surfaceId,
+      surfaceId ? 'surface:' + surfaceId : undefined,
+      surfaceKind && surfaceId ? surfaceKind + ':' + surfaceId : undefined,
+      route ? routeTarget(route) : undefined,
+      feature ? 'feature:' + feature : undefined
+    ]);
+    out.push({
+      id: (surfaceId || 'surface') + ':coverage',
+      kind: surfaceKind || 'surface',
+      source: 'surface-coverage',
+      status: record.ok === false ? 'failed' : 'passed',
+      target: surfaceId,
+      targets: surfaceTargets,
+      feature,
+      route,
+      required: arrayFromUnknown(record.required).length > 0,
+      message: record.ok === false ? 'Surface coverage is missing required evidence.' : 'Surface coverage is complete.',
+      tags: ['surface-coverage', surfaceKind, stringFrom(surface.status)],
+      metadata: {
+        required: record.required ?? [],
+        covered: record.covered ?? [],
+        missing: record.missing ?? []
+      }
+    });
+    for (const probe of arrayFromUnknown(record.probes)) {
+      const probeRecord = unknownRecord(probe);
+      const probeKind = stringFrom(probeRecord.kind, 'probe');
+      out.push({
+        id: stringFrom(probeRecord.id, (surfaceId || 'surface') + ':' + probeKind + ':probe'),
+        kind: probeKind,
+        source: 'surface-coverage.probe',
+        status: probeRecord.status === 'covered' ? 'passed' : probeRecord.status === 'planned' ? 'blocked' : stringFrom(probeRecord.status, 'unknown'),
+        target: surfaceId,
+        targets: surfaceTargets.concat(probeKind ? ['probe:' + probeKind] : []),
+        feature,
+        route,
+        statePath: stringFrom(probeRecord.statePath),
+        artifact: stringFrom(probeRecord.artifact),
+        required: true,
+        message: probeRecord.status === 'covered' ? 'Coverage probe is covered.' : 'Coverage probe is not covered.',
+        tags: ['surface-coverage', 'probe', probeKind, ...stringArray(probeRecord.tags)],
+        metadata: probeRecord
+      });
+    }
+    for (const proof of arrayFromUnknown(record.contractProofs)) {
+      const proofRecord = unknownRecord(proof);
+      const proofKind = stringFrom(proofRecord.kind, 'contract');
+      out.push({
+        id: stringFrom(proofRecord.id, (surfaceId || 'surface') + ':' + proofKind + ':contract'),
+        kind: 'contract:' + proofKind,
+        source: 'surface-coverage.contract',
+        status: proofRecord.status === 'passed' ? 'passed' : proofRecord.status === 'planned' ? 'blocked' : stringFrom(proofRecord.status, 'unknown'),
+        target: surfaceId,
+        targets: surfaceTargets.concat(['contract:' + proofKind]),
+        feature,
+        route: stringFrom(proofRecord.route, route),
+        artifact: stringFrom(proofRecord.artifact),
+        required: proofRecord.required !== false,
+        message: stringFrom(proofRecord.message),
+        tags: ['surface-coverage', 'contract', proofKind, ...stringArray(proofRecord.tags)],
+        metadata: proofRecord
+      });
+    }
+  }
+  return out;
+}
+
+function playwrightReportEvidence(values: readonly unknown[] | undefined): FrontierTestEvidenceObservationInput[] {
+  const reports: Record<string, unknown>[] = [];
+  for (const value of values ?? []) collectPlaywrightReports(value, reports);
+  const out: FrontierTestEvidenceObservationInput[] = [];
+  for (const report of reports) {
+    out.push({
+      id: stringFrom(report.runId, 'playwright') + ':report',
+      kind: 'playwright-report',
+      source: 'playwright',
+      status: report.ok === false ? 'failed' : 'passed',
+      target: 'playwright:report',
+      metadata: { summary: report.summary ?? null }
+    });
+    for (const query of arrayFromUnknown(report.queries)) {
+      const queryRecord = unknownRecord(query);
+      const queryInput = unknownRecord(queryRecord.query);
+      const count = numberFrom(queryRecord.count, arrayFromUnknown(queryRecord.matches).length);
+      const id = stringFrom(queryRecord.id, 'playwright-query');
+      out.push({
+        id: 'playwright:' + id,
+        kind: 'playwright-query',
+        source: 'playwright',
+        status: count > 0 ? 'passed' : 'failed',
+        target: id,
+        targets: uniqueStrings([
+          stringFrom(queryInput.registryEntryId),
+          stringFrom(queryInput.registryKind),
+          stringFrom(queryInput.selector),
+          stringFrom(queryInput.id),
+          stringFrom(queryInput.feature) ? 'feature:' + stringFrom(queryInput.feature) : undefined
+        ]),
+        feature: stringFrom(queryInput.feature),
+        statePath: pathFromUnknown(queryInput.path),
+        required: true,
+        message: count > 0 ? 'Playwright evidence query matched.' : 'Playwright evidence query had no matches.',
+        metadata: queryRecord
+      });
+    }
+  }
+  return out;
+}
+
+function inspectBundleEvidence(values: readonly unknown[] | undefined): FrontierTestEvidenceObservationInput[] {
+  const out: FrontierTestEvidenceObservationInput[] = [];
+  for (const value of values ?? []) {
+    const bundle = unknownRecord(value);
+    if (Object.keys(bundle).length === 0) continue;
+    const summary = unknownRecord(bundle.summary);
+    const errorCount = numberFrom(summary.errorCount, 0) + numberFrom(summary.errors, 0);
+    out.push({
+      id: stringFrom(bundle.id, 'inspect') + ':bundle',
+      kind: 'inspect-bundle',
+      source: 'inspect',
+      status: bundle.ok === false || errorCount > 0 ? 'failed' : 'passed',
+      target: 'inspect:bundle',
+      message: errorCount > 0 ? 'Inspect bundle has error events.' : 'Inspect bundle is readable.',
+      metadata: { summary }
+    });
+    for (const artifact of arrayFromUnknown(bundle.artifacts)) {
+      const artifactRecord = unknownRecord(artifact);
+      out.push({
+        id: stringFrom(artifactRecord.id, 'inspect-artifact'),
+        kind: stringFrom(artifactRecord.kind, 'inspect-artifact'),
+        source: 'inspect.artifact',
+        status: artifactRecord.status === 'error' ? 'failed' : 'passed',
+        target: stringFrom(artifactRecord.id),
+        feature: stringFrom(artifactRecord.feature),
+        artifact: stringFrom(artifactRecord.path, stringFrom(artifactRecord.file, stringFrom(artifactRecord.source))),
+        message: stringFrom(artifactRecord.message),
+        metadata: artifactRecord
+      });
+    }
+    for (const event of arrayFromUnknown(bundle.events)) {
+      const eventRecord = unknownRecord(event);
+      const severity = stringFrom(eventRecord.severity, stringFrom(eventRecord.level));
+      out.push({
+        id: stringFrom(eventRecord.id, 'inspect-event'),
+        kind: stringFrom(eventRecord.kind, 'inspect-event'),
+        source: 'inspect.event',
+        status: severity === 'error' || eventRecord.status === 'error' ? 'failed' : 'passed',
+        target: stringFrom(eventRecord.id),
+        feature: stringFrom(eventRecord.feature),
+        message: stringFrom(eventRecord.message),
+        metadata: eventRecord
+      });
+    }
+  }
+  return out;
+}
+
+function traceRecordEvidence(values: readonly unknown[] | undefined): FrontierTestEvidenceObservationInput[] {
+  const out: FrontierTestEvidenceObservationInput[] = [];
+  for (const value of values ?? []) {
+    const record = unknownRecord(value);
+    if (Object.keys(record).length === 0) continue;
+    const traceId = stringFrom(record.traceId, stringFrom(record.id));
+    const status = record.error || record.status === 'error' || record.status === 'failed' ? 'failed' : stringFrom(record.status, 'passed');
+    out.push({
+      id: traceId || 'trace-record',
+      kind: stringFrom(record.kind, 'trace'),
+      source: 'trace',
+      status,
+      target: stringFrom(record.name, traceId),
+      traceId,
+      message: stringFrom(record.message),
+      metadata: record
+    });
+  }
+  return out;
+}
+
+function logRecordEvidence(values: readonly unknown[] | undefined): FrontierTestEvidenceObservationInput[] {
+  const out: FrontierTestEvidenceObservationInput[] = [];
+  for (const value of values ?? []) {
+    const record = unknownRecord(value);
+    if (Object.keys(record).length === 0) continue;
+    const level = stringFrom(record.level, stringFrom(record.severity)).toLowerCase();
+    out.push({
+      id: stringFrom(record.id, stringFrom(record.traceId, 'log-record')),
+      kind: stringFrom(record.kind, 'log'),
+      source: 'log',
+      status: level === 'error' ? 'failed' : 'passed',
+      target: stringFrom(record.name, stringFrom(record.event)),
+      traceId: stringFrom(record.traceId),
+      message: stringFrom(record.message),
+      metadata: record
+    });
+  }
+  return out;
+}
+
+function collectPlaywrightReports(value: unknown, out: Record<string, unknown>[]): void {
+  const record = unknownRecord(value);
+  if (Object.keys(record).length === 0) return;
+  if (Array.isArray(record.queries)) {
+    out.push(record);
+    return;
+  }
+  if (record.report) collectPlaywrightReports(record.report, out);
+}
+
+function summarizeTestEvidence(observations: readonly FrontierTestEvidenceObservation[]): FrontierTestEvidenceSummary {
+  const summary: FrontierTestEvidenceSummary = { total: observations.length, passed: 0, failed: 0, blocked: 0, unknown: 0, required: 0, sourceCount: 0, artifactCount: 0, targetCount: 0 };
+  const sources = new Set<string>();
+  const artifacts = new Set<string>();
+  const targets = new Set<string>();
+  for (const observation of observations) {
+    summary[observation.status] += 1;
+    if (observation.required) summary.required += 1;
+    sources.add(observation.source);
+    for (const artifact of observation.artifacts) artifacts.add(artifact);
+    for (const target of observation.targets) targets.add(target);
+  }
+  summary.sourceCount = sources.size;
+  summary.artifactCount = artifacts.size;
+  summary.targetCount = targets.size;
+  return summary;
+}
+
+function selectEvidenceSpecs(
+  compiled: FrontierCompiledTestManifest,
+  input: FrontierTestEvidenceRunInput,
+  observations: readonly FrontierTestEvidenceObservation[]
+): FrontierTestSpec[] {
+  if (input.plan?.specIds.length) return specsForIds(compiled.specsById, input.plan.specIds);
+  if (input.specIds?.length) return specsForIds(compiled.specsById, input.specIds);
+  if (input.results?.length) return specsForIds(compiled.specsById, input.results.map((result) => result.specId));
+  const matched = compiled.manifest.specs.filter((spec) => observations.some((observation) => evidenceMatchesSpec(observation, spec)));
+  return matched.length > 0 ? matched : compiled.manifest.specs;
+}
+
+function evidenceResultForSpec(
+  spec: FrontierTestSpec,
+  observations: readonly FrontierTestEvidenceObservation[],
+  input: FrontierTestEvidenceRunInput,
+  direct?: FrontierTestResultInput
+): FrontierTestResultInput {
+  const matches = observations.filter((observation) => evidenceMatchesSpec(observation, spec));
+  if (matches.length === 0 && direct) return direct;
+  const requiredMatches = matches.filter((observation) => observation.required);
+  const optionalPassedMatches = matches.filter((observation) => !observation.required && observation.status === 'passed');
+  const statusMatches = requiredMatches.length > 0 ? requiredMatches : optionalPassedMatches;
+  const statuses = statusMatches.map((observation) => observation.status);
+  if (direct) statuses.push(evidenceStatusFromTestStatus(direct.status));
+  if (matches.length === 0 && !direct) statuses.push(input.failOnMissing ? 'failed' : 'unknown');
+  const status = testStatusFromEvidenceStatuses(statuses);
+  const messages = uniqueStrings(matches.map((observation) => observation.message));
+  const metadata = {
+    ...metadataObject(direct?.metadata),
+    evidenceObservationIds: matches.map((observation) => observation.id),
+    evidenceSources: uniqueStrings(matches.map((observation) => observation.source)),
+    evidenceTargets: uniqueStrings(matches.flatMap((observation) => observation.targets))
+  };
+  return {
+    specId: spec.id,
+    status,
+    durationMs: direct?.durationMs ?? 0,
+    attempts: direct?.attempts,
+    patches: direct?.patches,
+    effects: uniqueStrings((direct?.effects ?? []).concat(matches.flatMap((observation) => observation.effects))),
+    routes: uniqueStrings((direct?.routes ?? []).concat(direct?.route ? [direct.route] : [], matches.flatMap((observation) => observation.routes))),
+    policies: uniqueStrings((direct?.policies ?? []).concat(matches.flatMap((observation) => observation.policies))),
+    artifacts: uniqueStrings((direct?.artifacts ?? []).concat(matches.flatMap((observation) => observation.artifacts))),
+    traceIds: uniqueStrings((direct?.traceIds ?? []).concat(matches.flatMap((observation) => observation.traceIds))),
+    error: direct?.error ?? (status === 'failed' || status === 'blocked' ? messages.join('; ') || 'Required evidence did not pass.' : undefined),
+    metadata
+  };
+}
+
+function evidenceMatchesSpec(observation: FrontierTestEvidenceObservation, spec: FrontierTestSpec): boolean {
+  if (observation.specId) return observation.specId === spec.id;
+  const specTargets = specEvidenceTargets(spec);
+  if (overlaps(observation.targets, specTargets)) return true;
+  if (observation.feature && spec.feature === observation.feature) return true;
+  if (routeListsOverlap(observation.routes, specRoutes(spec))) return true;
+  if (overlaps(observation.actions, spec.actions.concat(spec.covers))) return true;
+  if (overlaps(observation.effects, spec.effects.concat(spec.expect.effects, spec.covers))) return true;
+  if (overlaps(observation.policies, spec.policies.concat(spec.expect.policies, spec.covers))) return true;
+  if (overlaps(observation.statePaths, spec.statePaths.concat(spec.expect.patches))) return true;
+  if (overlaps(observation.artifacts, spec.artifacts.concat(spec.expect.artifacts))) return true;
+  if (overlaps(observation.traceIds, spec.expect.traces)) return true;
+  return false;
+}
+
+function specEvidenceTargets(spec: FrontierTestSpec): string[] {
+  return uniqueStrings([
+    spec.id,
+    'spec:' + spec.id,
+    spec.feature ? 'feature:' + spec.feature : undefined,
+    ...spec.covers,
+    ...spec.actions.map((action) => 'action:' + action),
+    ...spec.effects.concat(spec.expect.effects).map((effect) => 'effect:' + effect),
+    ...spec.policies.concat(spec.expect.policies).map((policy) => 'policy:' + policy),
+    ...specRoutes(spec).map(routeTarget),
+    ...spec.statePaths.concat(spec.expect.patches).map((path) => 'path:' + path),
+    ...spec.artifacts.concat(spec.expect.artifacts).map((artifact) => 'artifact:' + normalizeFilePath(artifact)),
+    ...spec.expect.traces.map((trace) => 'trace:' + trace)
+  ]);
+}
+
+function specRoutes(spec: FrontierTestSpec): string[] {
+  return uniqueStrings([
+    ...spec.routes,
+    ...spec.expect.routes,
+    spec.given.route,
+    spec.when.route
+  ]);
+}
+
+function routeListsOverlap(left: readonly string[], right: readonly string[]): boolean {
+  for (const leftRoute of left) {
+    const normalizedLeft = comparableRoute(leftRoute);
+    for (const rightRoute of right) {
+      if (normalizedLeft === comparableRoute(rightRoute)) return true;
+    }
+  }
+  return false;
+}
+
+function routeTarget(value: string): string {
+  return 'route:' + comparableRoute(value);
+}
+
+function comparableRoute(value: string): string {
+  let route = value.trim();
+  if (route.startsWith('route:')) route = route.slice('route:'.length);
+  route = route.split(/[?#]/, 1)[0] ?? route;
+  if (!route) return '';
+  return route.startsWith('/') ? route : '/' + route;
+}
+
+function normalizeEvidenceStatus(status: string | boolean | undefined): FrontierTestEvidenceStatus {
+  if (status === true) return 'passed';
+  if (status === false) return 'failed';
+  const value = String(status ?? 'unknown').toLowerCase();
+  if (['passed', 'pass', 'ok', 'covered', 'success', 'succeeded', 'true', 'verified'].includes(value)) return 'passed';
+  if (['failed', 'fail', 'missing', 'error', 'errored', 'false', 'rejected'].includes(value)) return 'failed';
+  if (['blocked', 'planned', 'pending', 'todo', 'skipped', 'waiting'].includes(value)) return 'blocked';
+  return 'unknown';
+}
+
+function evidenceStatusFromTestStatus(status: FrontierTestStatus): FrontierTestEvidenceStatus {
+  if (status === 'passed' || status === 'flaky') return 'passed';
+  if (status === 'failed') return 'failed';
+  if (status === 'blocked' || status === 'skipped' || status === 'todo') return 'blocked';
+  return 'unknown';
+}
+
+function testStatusFromEvidenceStatuses(statuses: readonly FrontierTestEvidenceStatus[]): FrontierTestStatus {
+  if (statuses.includes('failed')) return 'failed';
+  if (statuses.includes('blocked')) return 'blocked';
+  if (statuses.includes('unknown')) return 'unknown';
+  return statuses.length > 0 ? 'passed' : 'unknown';
+}
+
+function metadataObject(value: unknown): JsonObject {
+  if (value === undefined) return {};
+  return toJsonObject(value);
+}
+
+function unknownRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function arrayFromUnknown(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? uniqueStrings(value.map((item) => String(item))) : [];
+}
+
+function stringFrom(value: unknown, fallback = ''): string {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function numberFrom(value: unknown, fallback = 0): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function pathFromUnknown(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return '/' + value.map(String).join('/');
+  return undefined;
 }
 
 function normalizeSpec(input: FrontierTestSpecInput): FrontierTestSpec {
