@@ -1,6 +1,6 @@
 {
   "name": "@shapeshift-labs/frontier-test",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Serializable test/spec evidence manifests for Frontier apps.",
   "type": "module",
   "license": "MIT",
