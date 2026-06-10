@@ -10,13 +10,16 @@ import {
   encodeTestTap,
   planTestRun,
   queryTestManifest,
+  recordEvidenceTestRun,
   recordTestRun,
   summarizeTestCoverage,
   traceTestImpact,
+  type FrontierTestEvidenceRecord,
+  type FrontierTestEvidenceRunRecord,
   type FrontierTestManifest,
   type FrontierTestRunRecord,
   type FrontierTestSpec
-} from '../src/index.js';
+} from '../src/index.ts';
 
 const spec: FrontierTestSpec = {
   kind: 'frontier.test.spec',
@@ -59,6 +62,11 @@ const run: FrontierTestRunRecord = recordTestRun(compiled, {
   finishedAt: 2,
   results: [{ specId: 'spec.type', status: 'passed', patches: ['/x'] }]
 });
+const evidenceRun: FrontierTestEvidenceRunRecord = recordEvidenceTestRun(compiled, {
+  specIds: ['spec.type'],
+  evidence: [{ target: 'action.type', status: 'passed', source: 'type-test' }]
+});
+const evidence: FrontierTestEvidenceRecord = evidenceRun.evidence;
 const tap = encodeTestTap(run);
 const junit = encodeTestJunitXml(run);
 
@@ -72,3 +80,4 @@ createTestProof(run);
 query.ids satisfies string[];
 impact.specIds satisfies string[];
 plan.commandIds satisfies string[];
+evidence.observations satisfies readonly unknown[];

@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import {
+  collectTestEvidence,
   compileTestManifest,
   createTestManifest,
   createTestProof,
@@ -14,6 +15,7 @@ import {
   encodeTestTap,
   planTestRun,
   queryTestManifest,
+  recordEvidenceTestRun,
   recordTestRun,
   redactTestValue,
   summarizeTestCoverage,
@@ -174,3 +176,92 @@ assert.strictEqual(decodeTestJsonl(jsonl).length, 3);
 assert.strictEqual(JSON.stringify(redactTestValue(manifest)).includes('secret'), false);
 assert.notStrictEqual(createTestProof(manifest, { generatedAt: 1 }).hash.length, 0);
 assert.notStrictEqual(createTestProof(run, { generatedAt: 1 }).hash.length, 0);
+
+const evidenceManifest = createTestManifest({
+  id: 'evidence.tests',
+  specs: [{
+    id: 'spec.surface.coverage',
+    kind: 'unit',
+    covers: ['surfaces:coverage'],
+    expect: { artifacts: ['dist/frontier/surface-coverage.json'] },
+    artifacts: ['dist/frontier/surface-coverage.json']
+  }]
+});
+
+const failedEvidenceRun = recordEvidenceTestRun(evidenceManifest, {
+  specIds: ['spec.surface.coverage'],
+  startedAt: 2000,
+  finishedAt: 2010,
+  failOnMissing: true,
+  artifacts: ['dist/frontier/surface-coverage.json'],
+  surfaceCoverage: {
+    kind: 'frontier.framework.surface-coverage.report',
+    appId: 'app',
+    ok: false,
+    reportFile: 'dist/frontier/surface-coverage.json',
+    dashboardFile: 'dist/frontier/surface-coverage.md',
+    summary: { missingCount: 1 },
+    records: [{
+      surface: { id: 'page.home', kind: 'page', route: '/', status: 'verified' },
+      required: ['render', 'state'],
+      covered: ['render'],
+      missing: ['state'],
+      ok: false,
+      probes: [
+        { id: 'page.home:render', kind: 'render', status: 'covered', artifact: 'agent-runs/home/evidence.json' },
+        { id: 'page.home:state', kind: 'state', status: 'missing', artifact: 'agent-runs/home/evidence.json' }
+      ],
+      contractProofs: []
+    }]
+  },
+  playwrightReports: [{
+    kind: 'frontier.playwright.report',
+    summary: { state: 1 },
+    queries: [{ id: 'state-ready', count: 1, query: { path: '/state/ready' }, matches: [{ value: true }] }]
+  }],
+  inspectBundles: [{
+    id: 'inspect:1',
+    summary: {},
+    artifacts: [{ id: 'surface-artifact', kind: 'evidence', path: 'dist/frontier/evidence.json' }]
+  }],
+  traceRecords: [{ id: 'trace:1', status: 'passed', message: 'trace ok' }],
+  logRecords: [{ id: 'log:1', level: 'info', message: 'log ok' }]
+});
+assert.strictEqual(failedEvidenceRun.evidence.kind, 'frontier.test.evidence');
+assert.strictEqual(failedEvidenceRun.run.status, 'failed');
+assert.ok(failedEvidenceRun.run.results[0].error.includes('Surface coverage'));
+assert.ok(failedEvidenceRun.evidence.summary.sourceCount >= 1);
+assert.notStrictEqual(failedEvidenceRun.proof.hash.length, 0);
+
+const collectedEvidence = collectTestEvidence({
+  playwrightReports: [{ queries: [{ id: 'state-ready', count: 1, query: { path: '/state/ready' } }] }],
+  inspectBundles: [{ id: 'inspect:1', artifacts: [{ id: 'inspect-artifact', path: 'dist/frontier/evidence.json' }] }],
+  traceRecords: [{ id: 'trace:1', status: 'passed' }],
+  logRecords: [{ id: 'log:1', level: 'info' }]
+});
+assert.ok(collectedEvidence.summary.sourceCount >= 4);
+
+const passedEvidenceRun = recordEvidenceTestRun(evidenceManifest, {
+  specIds: ['spec.surface.coverage'],
+  startedAt: 2100,
+  finishedAt: 2110,
+  failOnMissing: true,
+  surfaceCoverage: {
+    kind: 'frontier.framework.surface-coverage.report',
+    appId: 'app',
+    ok: true,
+    reportFile: 'dist/frontier/surface-coverage.json',
+    dashboardFile: 'dist/frontier/surface-coverage.md',
+    summary: { missingCount: 0 },
+    records: [{
+      surface: { id: 'page.home', kind: 'page', route: '/', status: 'verified' },
+      required: ['render'],
+      covered: ['render'],
+      missing: [],
+      ok: true,
+      probes: [{ id: 'page.home:render', kind: 'render', status: 'covered', artifact: 'agent-runs/home/evidence.json' }],
+      contractProofs: []
+    }]
+  }
+});
+assert.strictEqual(passedEvidenceRun.run.status, 'passed');
