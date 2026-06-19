@@ -339,6 +339,27 @@ const packageGateMatrix = summarizeTestPackageGateMatrix({
 
 `@shapeshift-labs/frontier-tools`, `@shapeshift-labs/frontier-workflow`, `@shapeshift-labs/frontier-policy`, `@shapeshift-labs/frontier-route`, `@shapeshift-labs/frontier-manifest`, and `@shapeshift-labs/frontier-inspect` remain structural consumers. This package records that a spec covers an action, workflow, policy, route, feature, migration, fuzzer, or benchmark without importing those packages.
 
+## Model Routing Oracle Fixtures
+
+`createTestModelRoutingOracleCorpus(...)` returns six stable scenarios for adaptive routing tests: simple docs, isolated package code, broad semantic merge, repeated failure, human ambiguity, and tournament-backed downgrade. Each fixture carries a plain-English label, a scenario id, a stable expected route, and a disposition of `route`, `escalate`, or `downgrade`.
+
+`compareTestModelRoutingDecision(actual, oracle)` normalizes common router decision fields such as `route`, `model`, `selectedModel`, `decision`, `outcome`, and `status`, so swarm and codex callers can compare their runtime decision records against the shared oracle fixtures.
+
+Example:
+
+```ts
+import {
+  compareTestModelRoutingDecision,
+  createTestModelRoutingOracleCorpus
+} from '@shapeshift-labs/frontier-test';
+
+const corpus = createTestModelRoutingOracleCorpus();
+const comparison = compareTestModelRoutingDecision(
+  { id: corpus.fixtures[0].id, route: 'gpt-5.4-mini', decision: 'route' },
+  corpus.fixtures[0]
+);
+```
+
 ## Benchmarks
 
 Run the package-local benchmark:

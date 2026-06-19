@@ -2,7 +2,9 @@ import assert from 'node:assert';
 import {
   collectTestEvidence,
   compileTestManifest,
+  compareTestModelRoutingDecision,
   createTestManifest,
+  createTestModelRoutingOracleCorpus,
   createTestProof,
   createTestRegistryGraph,
   decodeTestJsonl,
@@ -415,3 +417,55 @@ assert.strictEqual(gateEvidence.byKind.smoke.passed, 1);
 assert.strictEqual(gateEvidence.byKind.browser.blocked, 1);
 assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.build').failureTail, ['npm run build', '> frontier-test@0.1.1 build', 'error: missing export frontier-test/gate summary']);
 assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.browser').failureTail, ['playwright: browser launch timed out', 'retry budget exhausted']);
+
+const routingCorpus = createTestModelRoutingOracleCorpus();
+assert.strictEqual(routingCorpus.kind, 'frontier.test.model-routing-oracle');
+assert.strictEqual(routingCorpus.summary.fixtureCount, 6);
+assert.strictEqual(routingCorpus.summary.routeCount, 3);
+assert.strictEqual(routingCorpus.summary.dispositionCount, 3);
+assert.strictEqual(routingCorpus.summary.escalateCount, 3);
+assert.strictEqual(routingCorpus.summary.downgradeCount, 1);
+assert.strictEqual(routingCorpus.summary.humanCount, 1);
+assert.deepStrictEqual(routingCorpus.fixtures.map((fixture) => fixture.label), [
+  'Simple docs stay on the compact model',
+  'Isolated package code stays on the compact model',
+  'Broad semantic merges escalate to the stronger model',
+  'Repeated failures escalate rather than loop',
+  'Human ambiguity escalates to a human question',
+  'Tournament-backed wins can downgrade to the cheaper model'
+]);
+assert.deepStrictEqual(routingCorpus.byExpectedRoute['gpt-5.4-mini'], [
+  'model-routing-oracle:simple-docs',
+  'model-routing-oracle:isolated-package-code',
+  'model-routing-oracle:tournament-backed-downgrade'
+]);
+assert.deepStrictEqual(routingCorpus.byDisposition['escalate'], [
+  'model-routing-oracle:broad-semantic-merge',
+  'model-routing-oracle:repeated-failure',
+  'model-routing-oracle:human-ambiguity'
+]);
+
+const routingComparisons = routingCorpus.fixtures.map((fixture) => compareTestModelRoutingDecision(
+  {
+    id: fixture.id,
+    scenario: fixture.scenario,
+    label: fixture.label,
+    route: fixture.expectedRoute,
+    decision: fixture.expectedDisposition
+  },
+  fixture
+));
+assert.ok(routingComparisons.every((comparison) => comparison.matches));
+
+const downgradeMismatch = compareTestModelRoutingDecision(
+  {
+    id: 'model-routing-oracle:tournament-backed-downgrade',
+    scenario: 'tournament-backed-downgrade',
+    label: 'Tournament-backed wins can downgrade to the cheaper model',
+    route: 'gpt-5.5',
+    decision: 'route'
+  },
+  routingCorpus.fixtures.find((fixture) => fixture.id === 'model-routing-oracle:tournament-backed-downgrade')
+);
+assert.strictEqual(downgradeMismatch.matches, false);
+assert.ok(downgradeMismatch.mismatches.some((line) => line.includes('expected route gpt-5.4-mini')));
