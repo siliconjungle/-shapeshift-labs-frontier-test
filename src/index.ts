@@ -23,6 +23,8 @@ export const FRONTIER_TEST_PROOF_KIND = 'frontier.test.proof';
 export const FRONTIER_TEST_PROOF_VERSION = 1;
 export const FRONTIER_TEST_EVIDENCE_KIND = 'frontier.test.evidence';
 export const FRONTIER_TEST_EVIDENCE_VERSION = 1;
+export const FRONTIER_TEST_GATE_EVIDENCE_KIND = 'frontier.test.gate-evidence';
+export const FRONTIER_TEST_GATE_EVIDENCE_VERSION = 1;
 
 export type FrontierTestKind =
   | 'unit'
@@ -648,6 +650,73 @@ export interface FrontierTestEvidenceRunRecord {
   evidence: FrontierTestEvidenceRecord;
 }
 
+export type FrontierTestGateKind = 'unit' | 'build' | 'fuzz' | 'smoke' | 'browser' | string;
+
+export type FrontierTestGateEvidenceStatus = 'passed' | 'failed' | 'skipped' | 'blocked' | 'unknown';
+
+export interface FrontierTestGateEvidenceInput {
+  id: string;
+  kind: FrontierTestGateKind;
+  status: FrontierTestGateEvidenceStatus | FrontierTestStatus | string | boolean;
+  required?: boolean;
+  durationMs?: number;
+  failureTail?: string | readonly string[];
+  artifacts?: readonly string[];
+  package?: string;
+  packageScope?: readonly string[];
+  message?: string;
+}
+
+export interface FrontierTestGateEvidenceRecord {
+  id: string;
+  kind: FrontierTestGateKind;
+  required: boolean;
+  status: FrontierTestGateEvidenceStatus;
+  durationMs: number;
+  failureTail: string[];
+  artifacts: string[];
+  packageScope: string[];
+  message?: string;
+}
+
+export interface FrontierTestGateEvidenceKindSummary {
+  total: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+}
+
+export interface FrontierTestGateEvidenceSummaryInput {
+  gates: readonly FrontierTestGateEvidenceInput[];
+  packageScope?: readonly string[];
+  artifacts?: readonly string[];
+}
+
+export interface FrontierTestGateEvidenceSummary {
+  kind: typeof FRONTIER_TEST_GATE_EVIDENCE_KIND;
+  version: typeof FRONTIER_TEST_GATE_EVIDENCE_VERSION;
+  total: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+  gates: FrontierTestGateEvidenceRecord[];
+  byKind: Record<string, FrontierTestGateEvidenceKindSummary>;
+}
+
 export function defineTestSpec(input: FrontierTestSpecInput): FrontierTestSpec {
   return normalizeSpec(input);
 }
@@ -1000,6 +1069,68 @@ export function collectTestEvidence(input: FrontierTestEvidenceRunInput = {}): F
     observations,
     summary: summarizeTestEvidence(observations)
   };
+}
+
+export function summarizeTestGateEvidence(input: FrontierTestGateEvidenceSummaryInput): FrontierTestGateEvidenceSummary {
+  const gates = input.gates.map(normalizeGateEvidence).sort(compareGateEvidenceRecords);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(gates.flatMap((gate) => gate.packageScope)));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(gates.flatMap((gate) => gate.artifacts)));
+  const kindArtifacts = new Map<string, Set<string>>();
+  const summary: FrontierTestGateEvidenceSummary = {
+    kind: FRONTIER_TEST_GATE_EVIDENCE_KIND,
+    version: FRONTIER_TEST_GATE_EVIDENCE_VERSION,
+    total: gates.length,
+    required: 0,
+    optional: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    blocked: 0,
+    unknown: 0,
+    durationMs: 0,
+    artifactCount: artifacts.length,
+    packageScope,
+    gates,
+    byKind: {}
+  };
+
+  for (const gate of gates) {
+    summary.durationMs += gate.durationMs;
+    summary[gate.status] += 1;
+    if (gate.required) summary.required += 1;
+    else summary.optional += 1;
+    const artifactSet = kindArtifacts.get(gate.kind) ?? new Set<string>();
+    for (const artifact of gate.artifacts) artifactSet.add(artifact);
+    kindArtifacts.set(gate.kind, artifactSet);
+
+    const bucket = summary.byKind[gate.kind] ?? {
+      total: 0,
+      required: 0,
+      optional: 0,
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      blocked: 0,
+      unknown: 0,
+      durationMs: 0,
+      artifactCount: 0,
+      packageScope: []
+    };
+    bucket.total += 1;
+    bucket.durationMs += gate.durationMs;
+    bucket[gate.status] += 1;
+    if (gate.required) bucket.required += 1;
+    else bucket.optional += 1;
+    bucket.packageScope = uniqueStrings(bucket.packageScope.concat(gate.packageScope));
+    bucket.artifactCount = kindArtifacts.get(gate.kind)?.size ?? 0;
+    summary.byKind[gate.kind] = bucket;
+  }
+
+  for (const bucket of Object.values(summary.byKind)) {
+    bucket.optional = bucket.total - bucket.required;
+  }
+
+  return summary;
 }
 
 export function recordEvidenceTestRun(
@@ -1554,6 +1685,68 @@ function summarizeTestEvidence(observations: readonly FrontierTestEvidenceObserv
   summary.artifactCount = artifacts.size;
   summary.targetCount = targets.size;
   return summary;
+}
+
+function normalizeGateEvidence(input: FrontierTestGateEvidenceInput): FrontierTestGateEvidenceRecord {
+  const status = normalizeGateEvidenceStatus(input.status);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(input.package ? [input.package] : []));
+  return {
+    id: normalizeId(input.id, 'test gate evidence id'),
+    kind: input.kind,
+    required: input.required !== false,
+    status,
+    durationMs: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    failureTail: normalizeFailureTail(input.failureTail ?? (status === 'failed' || status === 'blocked' ? input.message : undefined)),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    packageScope,
+    ...(input.message ? { message: input.message } : {})
+  };
+}
+
+function compareGateEvidenceRecords(left: FrontierTestGateEvidenceRecord, right: FrontierTestGateEvidenceRecord): number {
+  return (
+    Number(right.required) - Number(left.required) ||
+    compareGateStatus(left.status, right.status) ||
+    right.durationMs - left.durationMs ||
+    left.kind.localeCompare(right.kind) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function compareGateStatus(left: FrontierTestGateEvidenceStatus, right: FrontierTestGateEvidenceStatus): number {
+  return gateStatusRank(right) - gateStatusRank(left);
+}
+
+function gateStatusRank(status: FrontierTestGateEvidenceStatus): number {
+  if (status === 'failed') return 4;
+  if (status === 'blocked') return 3;
+  if (status === 'unknown') return 2;
+  if (status === 'skipped') return 1;
+  return 0;
+}
+
+function normalizeGateEvidenceStatus(status: FrontierTestGateEvidenceInput['status']): FrontierTestGateEvidenceStatus {
+  if (status === true) return 'passed';
+  if (status === false) return 'failed';
+  const value = String(status ?? 'unknown').toLowerCase();
+  if (['passed', 'pass', 'ok', 'covered', 'success', 'succeeded', 'true', 'verified'].includes(value)) return 'passed';
+  if (['failed', 'fail', 'missing', 'error', 'errored', 'false', 'rejected'].includes(value)) return 'failed';
+  if (['skipped', 'skip', 'omitted', 'ignored'].includes(value)) return 'skipped';
+  if (['blocked', 'planned', 'pending', 'todo', 'waiting', 'flaky'].includes(value)) return 'blocked';
+  return 'unknown';
+}
+
+function normalizeFailureTail(value: string | readonly string[] | undefined): string[] {
+  if (value === undefined) return [];
+  const lines = typeof value === 'string' ? splitFailureTail(value) : value.flatMap((entry) => splitFailureTail(entry));
+  return uniqueStrings(lines).slice(-5);
+}
+
+function splitFailureTail(value: string): string[] {
+  return String(value)
+    .split(/\r?\n/g)
+    .map((line) => line.replace(/\s+$/u, ''))
+    .filter((line) => line.trim().length > 0);
 }
 
 function selectEvidenceSpecs(

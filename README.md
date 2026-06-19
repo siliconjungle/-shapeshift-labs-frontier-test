@@ -1,8 +1,8 @@
 # @shapeshift-labs/frontier-test
 
-Serializable test/spec evidence manifests for Frontier apps.
+Serializable test/spec evidence manifests and compact quality gate summaries for Frontier apps.
 
-`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, registry graph output, report adapters, and proof hashes.
+`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, gate summaries, registry graph output, report adapters, and proof hashes.
 
 ## Related Packages
 
@@ -235,6 +235,32 @@ const impact = traceTestImpact(tests, {
 const plan = planTestRun(tests, {
   changedActions: ['action.todos.complete'],
   mode: 'agent-change'
+});
+```
+
+## Gate Evidence Dashboards
+
+`summarizeTestGateEvidence(...)` is the compact shape for agent-facing quality gates. It is intended for dashboard and testing views that need to answer the same question at a glance: did the unit, build, fuzz, smoke, and browser gates pass, which ones were required, how long did they take, what failed, which artifacts should be opened, and which package scope they belong to.
+
+For human-readable dashboards, keep the presentation simple:
+
+- Show one row per gate with `kind`, `required`, `status`, `durationMs`, `failureTail`, `artifacts`, and `packageScope`.
+- Surface required gates first, then optional gates, with failed and blocked rows ahead of passed rows.
+- Render only the tail of the failure message or log, not the full stream.
+- Make artifact links clickable so the report, log, or trace file can be opened immediately.
+- Keep the package scope visible so agent work can be attributed to the right workspace or package boundary.
+
+Example:
+
+```ts
+import { summarizeTestGateEvidence } from '@shapeshift-labs/frontier-test';
+
+const gateEvidence = summarizeTestGateEvidence({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    { id: 'gate.unit', kind: 'unit', required: true, status: 'passed', durationMs: 42, artifacts: ['reports/unit.json'], packageScope: ['packages/frontier-test'] },
+    { id: 'gate.build', kind: 'build', required: true, status: 'failed', durationMs: 120, failureTail: 'npm run build\nerror: missing export', artifacts: ['dist/build.log'], packageScope: ['packages/frontier-test'] }
+  ]
 });
 ```
 
