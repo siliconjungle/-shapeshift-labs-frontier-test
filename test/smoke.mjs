@@ -2,7 +2,9 @@ import assert from 'node:assert';
 import {
   collectTestEvidence,
   compileTestManifest,
+  compareTestModelRoutingDecision,
   createTestManifest,
+  createTestModelRoutingOracleCorpus,
   createTestProof,
   createTestRegistryGraph,
   decodeTestJsonl,
@@ -17,6 +19,8 @@ import {
   queryTestManifest,
   recordEvidenceTestRun,
   recordTestRun,
+  summarizeTestGateEvidence,
+  summarizeTestPackageGateMatrix,
   redactTestValue,
   summarizeTestCoverage,
   traceTestImpact,
@@ -265,3 +269,203 @@ const passedEvidenceRun = recordEvidenceTestRun(evidenceManifest, {
   }
 });
 assert.strictEqual(passedEvidenceRun.run.status, 'passed');
+
+const packageGateMatrix = summarizeTestPackageGateMatrix({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    {
+      id: 'pkg.frontier-test',
+      packageId: 'frontier-test',
+      packagePath: 'packages/frontier-test',
+      packageName: '@shapeshift-labs/frontier-test',
+      selection: 'selected',
+      dependencyOrder: 0,
+      required: true,
+      status: 'passed',
+      durationMs: 42,
+      artifacts: ['reports/frontier-test.json'],
+      packageScope: ['packages/frontier-test']
+    },
+    {
+      id: 'pkg.frontier-swarm-codex',
+      packageId: 'frontier-swarm-codex',
+      packagePath: 'packages/frontier-swarm-codex',
+      packageName: '@shapeshift-labs/frontier-swarm-codex',
+      selection: 'dependency-selected',
+      dependencyOrder: 1,
+      required: true,
+      status: 'failed',
+      durationMs: 120,
+      failureTail: 'npm run test\n> frontier-swarm-codex@0.1.1 test\nerror: missing export frontier-swarm-codex/package gate matrix',
+      artifacts: ['dist/build.log'],
+      packageScope: ['packages/frontier-swarm-codex']
+    },
+    {
+      id: 'pkg.frontier-workflow',
+      packageId: 'frontier-workflow',
+      packagePath: 'packages/frontier-workflow',
+      packageName: '@shapeshift-labs/frontier-workflow',
+      selection: 'selected',
+      dependencyOrder: 2,
+      required: false,
+      status: 'passed',
+      durationMs: 15,
+      packageScope: ['packages/frontier-workflow']
+    },
+    {
+      id: 'pkg.frontier-swarm',
+      packageId: 'frontier-swarm',
+      packagePath: 'packages/frontier-swarm',
+      packageName: '@shapeshift-labs/frontier-swarm',
+      selection: 'skipped',
+      required: false,
+      status: 'skipped',
+      durationMs: 0,
+      artifacts: ['reports/frontier-swarm.json'],
+      packageScope: ['packages/frontier-swarm']
+    }
+  ]
+});
+assert.strictEqual(packageGateMatrix.kind, 'frontier.test.package-gate-matrix');
+assert.strictEqual(packageGateMatrix.total, 4);
+assert.strictEqual(packageGateMatrix.selected, 2);
+assert.strictEqual(packageGateMatrix.dependencySelected, 1);
+assert.strictEqual(packageGateMatrix.skipped, 1);
+assert.strictEqual(packageGateMatrix.required, 2);
+assert.strictEqual(packageGateMatrix.optional, 2);
+assert.strictEqual(packageGateMatrix.passed, 2);
+assert.strictEqual(packageGateMatrix.failed, 1);
+assert.strictEqual(packageGateMatrix.durationMs, 177);
+assert.ok(packageGateMatrix.packageScope.includes('packages/frontier-test'));
+assert.ok(packageGateMatrix.packageScope.includes('packages/frontier-swarm-codex'));
+assert.deepStrictEqual(packageGateMatrix.gates.map((gate) => gate.id), ['pkg.frontier-test', 'pkg.frontier-swarm-codex', 'pkg.frontier-workflow', 'pkg.frontier-swarm']);
+assert.strictEqual(packageGateMatrix.gates[0].packageId, 'frontier-test');
+assert.strictEqual(packageGateMatrix.gates[1].packagePath, 'packages/frontier-swarm-codex');
+assert.strictEqual(packageGateMatrix.gates[1].packageName, '@shapeshift-labs/frontier-swarm-codex');
+assert.strictEqual(packageGateMatrix.gates[1].selection, 'dependency-selected');
+assert.deepStrictEqual(packageGateMatrix.gates[1].failureTail, ['npm run test', '> frontier-swarm-codex@0.1.1 test', 'error: missing export frontier-swarm-codex/package gate matrix']);
+assert.strictEqual(packageGateMatrix.gates[3].selection, 'skipped');
+
+const gateEvidence = summarizeTestGateEvidence({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    {
+      id: 'gate.unit',
+      kind: 'unit',
+      required: true,
+      status: 'passed',
+      durationMs: 42,
+      artifacts: ['reports/unit.json'],
+      packageScope: ['packages/frontier-test']
+    },
+    {
+      id: 'gate.build',
+      kind: 'build',
+      required: true,
+      status: 'failed',
+      durationMs: 120,
+      failureTail: 'npm run build\n> frontier-test@0.1.1 build\nerror: missing export frontier-test/gate summary',
+      artifacts: ['dist/build.log'],
+      packageScope: ['packages/frontier-test']
+    },
+    {
+      id: 'gate.fuzz',
+      kind: 'fuzz',
+      required: false,
+      status: 'skipped',
+      durationMs: 0,
+      artifacts: ['reports/fuzz.json'],
+      packageScope: ['packages/frontier-test/test']
+    },
+    {
+      id: 'gate.smoke',
+      kind: 'smoke',
+      required: true,
+      status: 'passed',
+      durationMs: 18,
+      artifacts: ['reports/smoke.json'],
+      packageScope: ['packages/frontier-test/test']
+    },
+    {
+      id: 'gate.browser',
+      kind: 'browser',
+      required: false,
+      status: 'blocked',
+      durationMs: 15,
+      failureTail: ['playwright: browser launch timed out', 'retry budget exhausted'],
+      artifacts: ['playwright-report/index.html'],
+      packageScope: ['packages/frontier-test/browser']
+    }
+  ]
+});
+assert.strictEqual(gateEvidence.kind, 'frontier.test.gate-evidence');
+assert.strictEqual(gateEvidence.total, 5);
+assert.strictEqual(gateEvidence.required, 3);
+assert.strictEqual(gateEvidence.optional, 2);
+assert.strictEqual(gateEvidence.passed, 2);
+assert.strictEqual(gateEvidence.failed, 1);
+assert.strictEqual(gateEvidence.skipped, 1);
+assert.strictEqual(gateEvidence.blocked, 1);
+assert.strictEqual(gateEvidence.durationMs, 195);
+assert.ok(gateEvidence.packageScope.includes('packages/frontier-test'));
+assert.ok(gateEvidence.packageScope.includes('packages/frontier-test/browser'));
+assert.ok(gateEvidence.artifactCount >= 5);
+assert.strictEqual(gateEvidence.byKind.unit.total, 1);
+assert.strictEqual(gateEvidence.byKind.build.failed, 1);
+assert.strictEqual(gateEvidence.byKind.fuzz.skipped, 1);
+assert.strictEqual(gateEvidence.byKind.smoke.passed, 1);
+assert.strictEqual(gateEvidence.byKind.browser.blocked, 1);
+assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.build').failureTail, ['npm run build', '> frontier-test@0.1.1 build', 'error: missing export frontier-test/gate summary']);
+assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.browser').failureTail, ['playwright: browser launch timed out', 'retry budget exhausted']);
+
+const routingCorpus = createTestModelRoutingOracleCorpus();
+assert.strictEqual(routingCorpus.kind, 'frontier.test.model-routing-oracle');
+assert.strictEqual(routingCorpus.summary.fixtureCount, 6);
+assert.strictEqual(routingCorpus.summary.routeCount, 3);
+assert.strictEqual(routingCorpus.summary.dispositionCount, 3);
+assert.strictEqual(routingCorpus.summary.escalateCount, 3);
+assert.strictEqual(routingCorpus.summary.downgradeCount, 1);
+assert.strictEqual(routingCorpus.summary.humanCount, 1);
+assert.deepStrictEqual(routingCorpus.fixtures.map((fixture) => fixture.label), [
+  'Simple docs stay on the compact model',
+  'Isolated package code stays on the compact model',
+  'Broad semantic merges escalate to the stronger model',
+  'Repeated failures escalate rather than loop',
+  'Human ambiguity escalates to a human question',
+  'Tournament-backed wins can downgrade to the cheaper model'
+]);
+assert.deepStrictEqual(routingCorpus.byExpectedRoute['gpt-5.4-mini'], [
+  'model-routing-oracle:simple-docs',
+  'model-routing-oracle:isolated-package-code',
+  'model-routing-oracle:tournament-backed-downgrade'
+]);
+assert.deepStrictEqual(routingCorpus.byDisposition['escalate'], [
+  'model-routing-oracle:broad-semantic-merge',
+  'model-routing-oracle:repeated-failure',
+  'model-routing-oracle:human-ambiguity'
+]);
+
+const routingComparisons = routingCorpus.fixtures.map((fixture) => compareTestModelRoutingDecision(
+  {
+    id: fixture.id,
+    scenario: fixture.scenario,
+    label: fixture.label,
+    route: fixture.expectedRoute,
+    decision: fixture.expectedDisposition
+  },
+  fixture
+));
+assert.ok(routingComparisons.every((comparison) => comparison.matches));
+
+const downgradeMismatch = compareTestModelRoutingDecision(
+  {
+    id: 'model-routing-oracle:tournament-backed-downgrade',
+    scenario: 'tournament-backed-downgrade',
+    label: 'Tournament-backed wins can downgrade to the cheaper model',
+    route: 'gpt-5.5',
+    decision: 'route'
+  },
+  routingCorpus.fixtures.find((fixture) => fixture.id === 'model-routing-oracle:tournament-backed-downgrade')
+);
+assert.strictEqual(downgradeMismatch.matches, false);
+assert.ok(downgradeMismatch.mismatches.some((line) => line.includes('expected route gpt-5.4-mini')));

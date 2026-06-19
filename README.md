@@ -1,8 +1,8 @@
 # @shapeshift-labs/frontier-test
 
-Serializable test/spec evidence manifests for Frontier apps.
+Serializable test/spec evidence manifests and compact quality gate summaries for Frontier apps.
 
-`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, registry graph output, report adapters, and proof hashes.
+`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, gate summaries, registry graph output, report adapters, and proof hashes.
 
 ## Related Packages
 
@@ -238,6 +238,89 @@ const plan = planTestRun(tests, {
 });
 ```
 
+## Gate Evidence Dashboards
+
+`summarizeTestGateEvidence(...)` is the compact shape for agent-facing quality gates. It is intended for dashboard and testing views that need to answer the same question at a glance: did the unit, build, fuzz, smoke, and browser gates pass, which ones were required, how long did they take, what failed, which artifacts should be opened, and which package scope they belong to.
+
+For human-readable dashboards, keep the presentation simple:
+
+- Show one row per gate with `kind`, `required`, `status`, `durationMs`, `failureTail`, `artifacts`, and `packageScope`.
+- Surface required gates first, then optional gates, with failed and blocked rows ahead of passed rows.
+- Render only the tail of the failure message or log, not the full stream.
+- Make artifact links clickable so the report, log, or trace file can be opened immediately.
+- Keep the package scope visible so agent work can be attributed to the right workspace or package boundary.
+
+Example:
+
+```ts
+import { summarizeTestGateEvidence } from '@shapeshift-labs/frontier-test';
+
+const gateEvidence = summarizeTestGateEvidence({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    { id: 'gate.unit', kind: 'unit', required: true, status: 'passed', durationMs: 42, artifacts: ['reports/unit.json'], packageScope: ['packages/frontier-test'] },
+    { id: 'gate.build', kind: 'build', required: true, status: 'failed', durationMs: 120, failureTail: 'npm run build\nerror: missing export', artifacts: ['dist/build.log'], packageScope: ['packages/frontier-test'] }
+  ]
+});
+```
+
+## Package Gate Matrix
+
+`summarizeTestPackageGateMatrix(...)` is the package-oriented dashboard shape for autonomous apply. Use it when a run needs to show the changed package gate, dependency-selected package gates, and skipped unrelated package gates in one compact table.
+
+For performance and testing dashboard views, keep the presentation simple:
+
+- Show `packageId`, `packagePath`, `packageName`, `selection`, `dependencyOrder`, `required`, `status`, `durationMs`, and `failureTail`.
+- Keep selected and dependency-selected rows ahead of skipped rows.
+- Preserve the dependency-order column exactly as the autonomous apply planner produced it.
+- Render only the failure tail so the matrix stays compact and scannable.
+- Keep the package identity visible so the dashboard can point back to the correct workspace or release-train entry.
+
+Example:
+
+```ts
+import { summarizeTestPackageGateMatrix } from '@shapeshift-labs/frontier-test';
+
+const packageGateMatrix = summarizeTestPackageGateMatrix({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    {
+      id: 'pkg.frontier-test',
+      packageId: 'frontier-test',
+      packagePath: 'packages/frontier-test',
+      packageName: '@shapeshift-labs/frontier-test',
+      selection: 'selected',
+      dependencyOrder: 0,
+      required: true,
+      status: 'passed',
+      durationMs: 42
+    },
+    {
+      id: 'pkg.frontier-swarm-codex',
+      packageId: 'frontier-swarm-codex',
+      packagePath: 'packages/frontier-swarm-codex',
+      packageName: '@shapeshift-labs/frontier-swarm-codex',
+      selection: 'dependency-selected',
+      dependencyOrder: 1,
+      required: true,
+      status: 'failed',
+      durationMs: 120,
+      failureTail: 'npm run test\nerror: missing export'
+    },
+    {
+      id: 'pkg.frontier-swarm',
+      packageId: 'frontier-swarm',
+      packagePath: 'packages/frontier-swarm',
+      packageName: '@shapeshift-labs/frontier-swarm',
+      selection: 'skipped',
+      required: false,
+      status: 'skipped',
+      durationMs: 0
+    }
+  ]
+});
+```
+
 ## Surface
 
 - `createTestManifest`, `defineSpec`, `compileTestManifest`, `validateTestManifest`, and `queryTestManifest` describe declarative test/spec evidence.
@@ -255,6 +338,27 @@ const plan = planTestRun(tests, {
 `recordEvidenceTestRun` accepts structural producer output such as Playwright timeline reports, inspect bundles, framework surface coverage reports, trace records, log records, or direct evidence observations. It matches those observations back to declared specs by spec id, feature, route, action, effect, policy, state path, artifact, trace id, or `covers` target, then emits one run record and proof for handoff.
 
 `@shapeshift-labs/frontier-tools`, `@shapeshift-labs/frontier-workflow`, `@shapeshift-labs/frontier-policy`, `@shapeshift-labs/frontier-route`, `@shapeshift-labs/frontier-manifest`, and `@shapeshift-labs/frontier-inspect` remain structural consumers. This package records that a spec covers an action, workflow, policy, route, feature, migration, fuzzer, or benchmark without importing those packages.
+
+## Model Routing Oracle Fixtures
+
+`createTestModelRoutingOracleCorpus(...)` returns six stable scenarios for adaptive routing tests: simple docs, isolated package code, broad semantic merge, repeated failure, human ambiguity, and tournament-backed downgrade. Each fixture carries a plain-English label, a scenario id, a stable expected route, and a disposition of `route`, `escalate`, or `downgrade`.
+
+`compareTestModelRoutingDecision(actual, oracle)` normalizes common router decision fields such as `route`, `model`, `selectedModel`, `decision`, `outcome`, and `status`, so swarm and codex callers can compare their runtime decision records against the shared oracle fixtures.
+
+Example:
+
+```ts
+import {
+  compareTestModelRoutingDecision,
+  createTestModelRoutingOracleCorpus
+} from '@shapeshift-labs/frontier-test';
+
+const corpus = createTestModelRoutingOracleCorpus();
+const comparison = compareTestModelRoutingDecision(
+  { id: corpus.fixtures[0].id, route: 'gpt-5.4-mini', decision: 'route' },
+  corpus.fixtures[0]
+);
+```
 
 ## Benchmarks
 

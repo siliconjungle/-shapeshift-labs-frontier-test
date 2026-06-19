@@ -23,6 +23,12 @@ export const FRONTIER_TEST_PROOF_KIND = 'frontier.test.proof';
 export const FRONTIER_TEST_PROOF_VERSION = 1;
 export const FRONTIER_TEST_EVIDENCE_KIND = 'frontier.test.evidence';
 export const FRONTIER_TEST_EVIDENCE_VERSION = 1;
+export const FRONTIER_TEST_GATE_EVIDENCE_KIND = 'frontier.test.gate-evidence';
+export const FRONTIER_TEST_GATE_EVIDENCE_VERSION = 1;
+export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND = 'frontier.test.package-gate-matrix';
+export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION = 1;
+export const FRONTIER_TEST_MODEL_ROUTING_ORACLE_KIND = 'frontier.test.model-routing-oracle';
+export const FRONTIER_TEST_MODEL_ROUTING_ORACLE_VERSION = 1;
 
 export type FrontierTestKind =
   | 'unit'
@@ -648,6 +654,242 @@ export interface FrontierTestEvidenceRunRecord {
   evidence: FrontierTestEvidenceRecord;
 }
 
+export type FrontierTestGateKind = 'unit' | 'build' | 'fuzz' | 'smoke' | 'browser' | string;
+
+export type FrontierTestGateEvidenceStatus = 'passed' | 'failed' | 'skipped' | 'blocked' | 'unknown';
+
+export interface FrontierTestGateEvidenceInput {
+  id: string;
+  kind: FrontierTestGateKind;
+  status: FrontierTestGateEvidenceStatus | FrontierTestStatus | string | boolean;
+  required?: boolean;
+  durationMs?: number;
+  failureTail?: string | readonly string[];
+  artifacts?: readonly string[];
+  package?: string;
+  packageScope?: readonly string[];
+  message?: string;
+}
+
+export interface FrontierTestGateEvidenceRecord {
+  id: string;
+  kind: FrontierTestGateKind;
+  required: boolean;
+  status: FrontierTestGateEvidenceStatus;
+  durationMs: number;
+  failureTail: string[];
+  artifacts: string[];
+  packageScope: string[];
+  message?: string;
+}
+
+export interface FrontierTestGateEvidenceKindSummary {
+  total: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+}
+
+export interface FrontierTestGateEvidenceSummaryInput {
+  gates: readonly FrontierTestGateEvidenceInput[];
+  packageScope?: readonly string[];
+  artifacts?: readonly string[];
+}
+
+export interface FrontierTestGateEvidenceSummary {
+  kind: typeof FRONTIER_TEST_GATE_EVIDENCE_KIND;
+  version: typeof FRONTIER_TEST_GATE_EVIDENCE_VERSION;
+  total: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+  gates: FrontierTestGateEvidenceRecord[];
+  byKind: Record<string, FrontierTestGateEvidenceKindSummary>;
+}
+
+export type FrontierTestPackageGateMatrixSelection = 'selected' | 'dependency-selected' | 'skipped';
+
+export interface FrontierTestPackageGateMatrixInput {
+  id: string;
+  packageId: string;
+  packagePath: string;
+  packageName: string;
+  selection: FrontierTestPackageGateMatrixSelection | boolean;
+  dependencyOrder?: number;
+  required?: boolean;
+  durationMs?: number;
+  failureTail?: string | readonly string[];
+  artifacts?: readonly string[];
+  packageScope?: readonly string[];
+  status?: FrontierTestGateEvidenceStatus | FrontierTestStatus | string | boolean;
+  message?: string;
+}
+
+export interface FrontierTestPackageGateMatrixRecord {
+  id: string;
+  packageId: string;
+  packagePath: string;
+  packageName: string;
+  selection: FrontierTestPackageGateMatrixSelection;
+  dependencyOrder?: number;
+  required: boolean;
+  status: FrontierTestGateEvidenceStatus;
+  durationMs: number;
+  failureTail: string[];
+  artifacts: string[];
+  packageScope: string[];
+  message?: string;
+}
+
+export interface FrontierTestPackageGateMatrixSummaryInput {
+  gates: readonly FrontierTestPackageGateMatrixInput[];
+  packageScope?: readonly string[];
+  artifacts?: readonly string[];
+}
+
+export interface FrontierTestPackageGateMatrixSummary {
+  kind: typeof FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND;
+  version: typeof FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION;
+  total: number;
+  selected: number;
+  dependencySelected: number;
+  skipped: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+  gates: FrontierTestPackageGateMatrixRecord[];
+}
+
+export type FrontierTestModelRoutingOracleDisposition = 'route' | 'downgrade' | 'escalate';
+
+export type FrontierTestModelRoutingOracleScenario =
+  | 'simple-docs'
+  | 'isolated-package-code'
+  | 'broad-semantic-merge'
+  | 'repeated-failure'
+  | 'human-ambiguity'
+  | 'tournament-backed-downgrade'
+  | string;
+
+export interface FrontierTestModelRoutingOracleFixtureInput {
+  id: string;
+  label: string;
+  description: string;
+  scenario: FrontierTestModelRoutingOracleScenario;
+  expectedRoute: string;
+  expectedDisposition: FrontierTestModelRoutingOracleDisposition;
+  signals?: unknown;
+  tags?: readonly string[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestModelRoutingOracleFixture {
+  id: string;
+  label: string;
+  description: string;
+  scenario: FrontierTestModelRoutingOracleScenario;
+  expectedRoute: string;
+  expectedDisposition: FrontierTestModelRoutingOracleDisposition;
+  signals?: JsonObject;
+  tags: string[];
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestModelRoutingOracleCorpusInput {
+  id?: string;
+  title?: string;
+  generatedAt?: number;
+  fixtures?: readonly FrontierTestModelRoutingOracleFixtureInput[];
+  metadata?: unknown;
+}
+
+export interface FrontierTestModelRoutingOracleCorpus {
+  kind: typeof FRONTIER_TEST_MODEL_ROUTING_ORACLE_KIND;
+  version: typeof FRONTIER_TEST_MODEL_ROUTING_ORACLE_VERSION;
+  id: string;
+  title: string;
+  generatedAt: number;
+  fixtures: FrontierTestModelRoutingOracleFixture[];
+  byScenario: Record<string, string[]>;
+  byExpectedRoute: Record<string, string[]>;
+  byDisposition: Record<string, string[]>;
+  summary: {
+    fixtureCount: number;
+    routeCount: number;
+    dispositionCount: number;
+    escalateCount: number;
+    downgradeCount: number;
+    humanCount: number;
+  };
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestModelRoutingDecisionInput {
+  id?: string;
+  scenario?: string;
+  label?: string;
+  route?: string;
+  model?: string;
+  modelId?: string;
+  selectedModel?: string;
+  targetModel?: string;
+  winnerModel?: string;
+  fallbackModel?: string;
+  destination?: string;
+  nextModel?: string;
+  decision?: string;
+  outcome?: string;
+  status?: string;
+  action?: string;
+  humanQuestion?: unknown;
+  question?: unknown;
+  needsHuman?: boolean;
+  downgraded?: boolean;
+  escalated?: boolean;
+  tournament?: boolean;
+  reason?: string;
+  metadata?: unknown;
+}
+
+export type FrontierTestModelRoutingDecisionDisposition = FrontierTestModelRoutingOracleDisposition | 'unknown';
+
+export interface FrontierTestModelRoutingOracleComparison {
+  kind: 'frontier.test.model-routing-oracle-comparison';
+  version: 1;
+  oracleId: string;
+  actualId?: string;
+  scenario: string;
+  label: string;
+  expectedRoute: string;
+  expectedDisposition: FrontierTestModelRoutingOracleDisposition;
+  actualRoute: string;
+  actualDisposition: FrontierTestModelRoutingDecisionDisposition;
+  routeMatches: boolean;
+  dispositionMatches: boolean;
+  matches: boolean;
+  mismatches: string[];
+}
+
 export function defineTestSpec(input: FrontierTestSpecInput): FrontierTestSpec {
   return normalizeSpec(input);
 }
@@ -999,6 +1241,177 @@ export function collectTestEvidence(input: FrontierTestEvidenceRunInput = {}): F
     generatedAt,
     observations,
     summary: summarizeTestEvidence(observations)
+  };
+}
+
+export function summarizeTestGateEvidence(input: FrontierTestGateEvidenceSummaryInput): FrontierTestGateEvidenceSummary {
+  const gates = input.gates.map(normalizeGateEvidence).sort(compareGateEvidenceRecords);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(gates.flatMap((gate) => gate.packageScope)));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(gates.flatMap((gate) => gate.artifacts)));
+  const kindArtifacts = new Map<string, Set<string>>();
+  const summary: FrontierTestGateEvidenceSummary = {
+    kind: FRONTIER_TEST_GATE_EVIDENCE_KIND,
+    version: FRONTIER_TEST_GATE_EVIDENCE_VERSION,
+    total: gates.length,
+    required: 0,
+    optional: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    blocked: 0,
+    unknown: 0,
+    durationMs: 0,
+    artifactCount: artifacts.length,
+    packageScope,
+    gates,
+    byKind: {}
+  };
+
+  for (const gate of gates) {
+    summary.durationMs += gate.durationMs;
+    summary[gate.status] += 1;
+    if (gate.required) summary.required += 1;
+    else summary.optional += 1;
+    const artifactSet = kindArtifacts.get(gate.kind) ?? new Set<string>();
+    for (const artifact of gate.artifacts) artifactSet.add(artifact);
+    kindArtifacts.set(gate.kind, artifactSet);
+
+    const bucket = summary.byKind[gate.kind] ?? {
+      total: 0,
+      required: 0,
+      optional: 0,
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      blocked: 0,
+      unknown: 0,
+      durationMs: 0,
+      artifactCount: 0,
+      packageScope: []
+    };
+    bucket.total += 1;
+    bucket.durationMs += gate.durationMs;
+    bucket[gate.status] += 1;
+    if (gate.required) bucket.required += 1;
+    else bucket.optional += 1;
+    bucket.packageScope = uniqueStrings(bucket.packageScope.concat(gate.packageScope));
+    bucket.artifactCount = kindArtifacts.get(gate.kind)?.size ?? 0;
+    summary.byKind[gate.kind] = bucket;
+  }
+
+  for (const bucket of Object.values(summary.byKind)) {
+    bucket.optional = bucket.total - bucket.required;
+  }
+
+  return summary;
+}
+
+export function summarizeTestPackageGateMatrix(input: FrontierTestPackageGateMatrixSummaryInput): FrontierTestPackageGateMatrixSummary {
+  const gates = input.gates.map(normalizePackageGateMatrix).sort(comparePackageGateMatrixRecords);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(gates.flatMap((gate) => gate.packageScope), gates.map((gate) => gate.packagePath)));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(gates.flatMap((gate) => gate.artifacts)));
+  const summary: FrontierTestPackageGateMatrixSummary = {
+    kind: FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND,
+    version: FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION,
+    total: gates.length,
+    selected: 0,
+    dependencySelected: 0,
+    skipped: 0,
+    required: 0,
+    optional: 0,
+    passed: 0,
+    failed: 0,
+    blocked: 0,
+    unknown: 0,
+    durationMs: 0,
+    artifactCount: artifacts.length,
+    packageScope,
+    gates
+  };
+
+  for (const gate of gates) {
+    summary.durationMs += gate.durationMs;
+    if (gate.status !== 'skipped') summary[gate.status] += 1;
+    if (gate.required) summary.required += 1;
+    else summary.optional += 1;
+    if (gate.selection === 'selected') summary.selected += 1;
+    else if (gate.selection === 'dependency-selected') summary.dependencySelected += 1;
+    else summary.skipped += 1;
+  }
+
+  return summary;
+}
+
+export function createTestModelRoutingOracleFixtures(input: FrontierTestModelRoutingOracleCorpusInput = {}): FrontierTestModelRoutingOracleFixture[] {
+  const fixtures = defaultModelRoutingOracleFixtures().concat(input.fixtures ?? []);
+  const normalized = fixtures.map(normalizeModelRoutingOracleFixture);
+  const deduped = new Map<string, FrontierTestModelRoutingOracleFixture>();
+  for (const fixture of normalized) deduped.set(fixture.id, fixture);
+  return Array.from(deduped.values());
+}
+
+export function createTestModelRoutingOracleCorpus(input: FrontierTestModelRoutingOracleCorpusInput = {}): FrontierTestModelRoutingOracleCorpus {
+  const generatedAt = input.generatedAt ?? Date.now();
+  const fixtures = createTestModelRoutingOracleFixtures(input);
+  const byScenario = new Map<string, string[]>();
+  const byExpectedRoute = new Map<string, string[]>();
+  const byDisposition = new Map<string, string[]>();
+  for (const fixture of fixtures) {
+    pushMap(byScenario, fixture.scenario, fixture.id);
+    pushMap(byExpectedRoute, fixture.expectedRoute, fixture.id);
+    pushMap(byDisposition, fixture.expectedDisposition, fixture.id);
+  }
+  const summary = {
+    fixtureCount: fixtures.length,
+    routeCount: byExpectedRoute.size,
+    dispositionCount: byDisposition.size,
+    escalateCount: byDisposition.get('escalate')?.length ?? 0,
+    downgradeCount: byDisposition.get('downgrade')?.length ?? 0,
+    humanCount: byExpectedRoute.get('human')?.length ?? 0
+  };
+  return {
+    kind: FRONTIER_TEST_MODEL_ROUTING_ORACLE_KIND,
+    version: FRONTIER_TEST_MODEL_ROUTING_ORACLE_VERSION,
+    id: normalizeId(input.id ?? 'model-routing-oracles', 'test model routing oracle corpus id'),
+    title: input.title ?? 'Model Routing Oracle Fixtures',
+    generatedAt,
+    fixtures,
+    byScenario: Object.fromEntries(Array.from(byScenario, ([key, value]) => [key, uniqueStrings(value)])),
+    byExpectedRoute: Object.fromEntries(Array.from(byExpectedRoute, ([key, value]) => [key, uniqueStrings(value)])),
+    byDisposition: Object.fromEntries(Array.from(byDisposition, ([key, value]) => [key, uniqueStrings(value)])),
+    summary,
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+export function compareTestModelRoutingDecision(
+  actual: FrontierTestModelRoutingDecisionInput | unknown,
+  oracleInput: FrontierTestModelRoutingOracleFixture | FrontierTestModelRoutingOracleFixtureInput
+): FrontierTestModelRoutingOracleComparison {
+  const oracle = normalizeModelRoutingOracleFixture(oracleInput);
+  const decision = normalizeModelRoutingDecision(actual);
+  const routeMatches = decision.route === oracle.expectedRoute;
+  const dispositionMatches = decision.disposition === oracle.expectedDisposition;
+  const mismatches: string[] = [];
+  if (!routeMatches) mismatches.push(`expected route ${oracle.expectedRoute}, received ${decision.route || 'unknown'}`);
+  if (!dispositionMatches) mismatches.push(`expected disposition ${oracle.expectedDisposition}, received ${decision.disposition}`);
+  if (decision.label && decision.label !== oracle.label) mismatches.push(`label mismatch: ${decision.label}`);
+  if (decision.scenario && decision.scenario !== oracle.scenario) mismatches.push(`scenario mismatch: ${decision.scenario}`);
+  return {
+    kind: 'frontier.test.model-routing-oracle-comparison',
+    version: 1,
+    oracleId: oracle.id,
+    ...(decision.id ? { actualId: decision.id } : {}),
+    scenario: oracle.scenario,
+    label: oracle.label,
+    expectedRoute: oracle.expectedRoute,
+    expectedDisposition: oracle.expectedDisposition,
+    actualRoute: decision.route,
+    actualDisposition: decision.disposition,
+    routeMatches,
+    dispositionMatches,
+    matches: routeMatches && dispositionMatches && (decision.label ? decision.label === oracle.label : true) && (decision.scenario ? decision.scenario === oracle.scenario : true),
+    mismatches
   };
 }
 
@@ -1554,6 +1967,342 @@ function summarizeTestEvidence(observations: readonly FrontierTestEvidenceObserv
   summary.artifactCount = artifacts.size;
   summary.targetCount = targets.size;
   return summary;
+}
+
+function normalizeGateEvidence(input: FrontierTestGateEvidenceInput): FrontierTestGateEvidenceRecord {
+  const status = normalizeGateEvidenceStatus(input.status);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(input.package ? [input.package] : []));
+  return {
+    id: normalizeId(input.id, 'test gate evidence id'),
+    kind: input.kind,
+    required: input.required !== false,
+    status,
+    durationMs: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    failureTail: normalizeFailureTail(input.failureTail ?? (status === 'failed' || status === 'blocked' ? input.message : undefined)),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    packageScope,
+    ...(input.message ? { message: input.message } : {})
+  };
+}
+
+function normalizePackageGateMatrix(input: FrontierTestPackageGateMatrixInput): FrontierTestPackageGateMatrixRecord {
+  const status = normalizeGateEvidenceStatus(input.status ?? 'unknown');
+  const dependencyOrder = input.dependencyOrder === undefined || !Number.isFinite(input.dependencyOrder) ? undefined : Math.max(0, Math.floor(input.dependencyOrder));
+  return {
+    id: normalizeId(input.id, 'test package gate matrix id'),
+    packageId: normalizeId(input.packageId, 'test package gate matrix package id'),
+    packagePath: normalizeFilePath(input.packagePath),
+    packageName: String(input.packageName),
+    selection: normalizePackageGateMatrixSelection(input.selection),
+    ...(dependencyOrder !== undefined ? { dependencyOrder } : {}),
+    required: input.required !== false,
+    status,
+    durationMs: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    failureTail: normalizeFailureTail(input.failureTail ?? (status === 'failed' || status === 'blocked' ? input.message : undefined)),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    packageScope: uniqueStrings((input.packageScope ?? []).concat(input.packagePath)),
+    ...(input.message ? { message: input.message } : {})
+  };
+}
+
+function defaultModelRoutingOracleFixtures(): FrontierTestModelRoutingOracleFixtureInput[] {
+  return [
+    {
+      id: 'model-routing-oracle:simple-docs',
+      label: 'Simple docs stay on the compact model',
+      description: 'A single-document documentation change should stay on the compact route and avoid escalation.',
+      scenario: 'simple-docs',
+      expectedRoute: 'gpt-5.4-mini',
+      expectedDisposition: 'route',
+      signals: {
+        surface: 'documentation',
+        changedFiles: 1,
+        changedPackages: 0,
+        semanticMergeCandidates: 0,
+        repeatedFailures: 0,
+        humanAmbiguity: false,
+        tournamentBacked: false
+      },
+      tags: ['docs', 'compact', 'baseline']
+    },
+    {
+      id: 'model-routing-oracle:isolated-package-code',
+      label: 'Isolated package code stays on the compact model',
+      description: 'A small, isolated package edit should stay on the compact route because the blast radius is narrow.',
+      scenario: 'isolated-package-code',
+      expectedRoute: 'gpt-5.4-mini',
+      expectedDisposition: 'route',
+      signals: {
+        surface: 'package-code',
+        changedFiles: 3,
+        changedPackages: 1,
+        semanticMergeCandidates: 1,
+        repeatedFailures: 0,
+        humanAmbiguity: false,
+        tournamentBacked: false
+      },
+      tags: ['package', 'isolated', 'compact']
+    },
+    {
+      id: 'model-routing-oracle:broad-semantic-merge',
+      label: 'Broad semantic merges escalate to the stronger model',
+      description: 'A wide semantic merge should escalate to the stronger model because breadth and coupling are high.',
+      scenario: 'broad-semantic-merge',
+      expectedRoute: 'gpt-5.5',
+      expectedDisposition: 'escalate',
+      signals: {
+        surface: 'semantic-merge',
+        changedFiles: 18,
+        changedPackages: 5,
+        semanticMergeCandidates: 12,
+        repeatedFailures: 0,
+        humanAmbiguity: false,
+        tournamentBacked: false
+      },
+      tags: ['semantic-merge', 'broad', 'escalate']
+    },
+    {
+      id: 'model-routing-oracle:repeated-failure',
+      label: 'Repeated failures escalate rather than loop',
+      description: 'A task that has failed repeatedly should escalate instead of being retried on the same narrow route.',
+      scenario: 'repeated-failure',
+      expectedRoute: 'gpt-5.5',
+      expectedDisposition: 'escalate',
+      signals: {
+        surface: 'retry-loop',
+        changedFiles: 4,
+        changedPackages: 2,
+        semanticMergeCandidates: 2,
+        repeatedFailures: 3,
+        humanAmbiguity: false,
+        tournamentBacked: false
+      },
+      tags: ['retry', 'failure', 'escalate']
+    },
+    {
+      id: 'model-routing-oracle:human-ambiguity',
+      label: 'Human ambiguity escalates to a human question',
+      description: 'When the decision needs missing authority or a policy call, the router should escalate to human review.',
+      scenario: 'human-ambiguity',
+      expectedRoute: 'human',
+      expectedDisposition: 'escalate',
+      signals: {
+        surface: 'policy',
+        changedFiles: 2,
+        changedPackages: 1,
+        semanticMergeCandidates: 0,
+        repeatedFailures: 0,
+        humanAmbiguity: true,
+        missingAuthority: 'approval',
+        tournamentBacked: false
+      },
+      tags: ['human', 'ambiguity', 'question']
+    },
+    {
+      id: 'model-routing-oracle:tournament-backed-downgrade',
+      label: 'Tournament-backed wins can downgrade to the cheaper model',
+      description: 'When the tournament result is clear, the router should downgrade to the cheaper compact model.',
+      scenario: 'tournament-backed-downgrade',
+      expectedRoute: 'gpt-5.4-mini',
+      expectedDisposition: 'downgrade',
+      signals: {
+        surface: 'tournament',
+        changedFiles: 6,
+        changedPackages: 2,
+        semanticMergeCandidates: 3,
+        repeatedFailures: 0,
+        humanAmbiguity: false,
+        tournamentBacked: true,
+        tournamentWinner: 'gpt-5.4-mini',
+        baselineModel: 'gpt-5.5'
+      },
+      tags: ['tournament', 'downgrade', 'compact']
+    }
+  ];
+}
+
+function normalizeModelRoutingOracleFixture(input: FrontierTestModelRoutingOracleFixture | FrontierTestModelRoutingOracleFixtureInput): FrontierTestModelRoutingOracleFixture {
+  const record = unknownRecord(input);
+  const scenario = stringFrom(record.scenario, stringFrom(record.id));
+  const expectedRoute = normalizeModelRoutingRoute(record.expectedRoute);
+  const expectedDisposition = normalizeModelRoutingDisposition(record.expectedDisposition ?? 'route', {
+    route: expectedRoute,
+    reason: stringFrom(record.description, stringFrom(record.label))
+  }) as FrontierTestModelRoutingOracleDisposition;
+  return {
+    id: normalizeId(stringFrom(record.id, scenario), 'test model routing oracle fixture id'),
+    label: stringFrom(record.label, titleFromId(scenario)),
+    description: stringFrom(record.description, stringFrom(record.label, titleFromId(scenario))),
+    scenario,
+    expectedRoute,
+    expectedDisposition,
+    ...optionalObject('signals', record.signals),
+    tags: uniqueStrings([
+      ...stringArray(record.tags),
+      'model-routing-oracle',
+      scenario,
+      expectedRoute,
+      expectedDisposition
+    ]),
+    ...optionalObject('metadata', record.metadata)
+  };
+}
+
+function normalizeModelRoutingDecision(input: FrontierTestModelRoutingDecisionInput | unknown): {
+  id?: string;
+  scenario: string;
+  label: string;
+  route: string;
+  disposition: FrontierTestModelRoutingDecisionDisposition;
+} {
+  const record = unknownRecord(input);
+  const route = normalizeModelRoutingRoute(
+    record.route
+    ?? record.model
+    ?? record.modelId
+    ?? record.selectedModel
+    ?? record.targetModel
+    ?? record.winnerModel
+    ?? record.destination
+    ?? record.nextModel
+    ?? record.fallbackModel
+    ?? (record.humanQuestion !== undefined || record.question !== undefined || record.needsHuman === true ? 'human' : '')
+  );
+  return {
+    ...(record.id ? { id: normalizeId(String(record.id), 'test model routing decision id') } : {}),
+    scenario: stringFrom(record.scenario),
+    label: stringFrom(record.label, stringFrom(record.title)),
+    route,
+    disposition: normalizeModelRoutingDisposition(record.decision ?? record.outcome ?? record.status ?? record.action, {
+      route,
+      humanQuestion: record.humanQuestion ?? record.question,
+      needsHuman: record.needsHuman === true,
+      downgraded: record.downgraded === true,
+      escalated: record.escalated === true,
+      reason: stringFrom(record.reason)
+    })
+  };
+}
+
+function normalizeModelRoutingRoute(value: unknown): string {
+  const text = stringFrom(value);
+  if (!text) return 'unknown';
+  const trimmed = text.trim();
+  const prefixMatch = /^(route|model|destination|winner|selected-model|target-model|next-model|fallback-model)\s*:\s*/i.exec(trimmed);
+  const route = prefixMatch ? trimmed.slice(prefixMatch[0].length).trim() : trimmed;
+  if (!route) return 'unknown';
+  const lower = route.toLowerCase();
+  if (lower === 'human' || lower === 'human-question' || lower === 'question' || lower.startsWith('human:')) return 'human';
+  return route;
+}
+
+function normalizeModelRoutingDisposition(
+  value: unknown,
+  context: {
+    route: string;
+    humanQuestion?: unknown;
+    needsHuman?: boolean;
+    downgraded?: boolean;
+    escalated?: boolean;
+    reason?: string;
+  }
+): FrontierTestModelRoutingDecisionDisposition {
+  const text = [
+    stringFrom(value),
+    context.reason ?? '',
+    context.route,
+    context.needsHuman ? 'needs-human' : '',
+    context.downgraded ? 'downgraded' : '',
+    context.escalated ? 'escalated' : ''
+  ].join(' ').toLowerCase();
+  if (context.humanQuestion !== undefined || context.needsHuman || text.includes('human') || text.includes('question')) return 'escalate';
+  if (context.downgraded || text.includes('downgrade') || text.includes('fallback') || text.includes('demote')) return 'downgrade';
+  if (context.escalated || text.includes('escalate') || text.includes('promote')) return 'escalate';
+  if (context.route === 'human') return 'escalate';
+  return 'route';
+}
+
+function compareGateEvidenceRecords(left: FrontierTestGateEvidenceRecord, right: FrontierTestGateEvidenceRecord): number {
+  return (
+    Number(right.required) - Number(left.required) ||
+    compareGateStatus(left.status, right.status) ||
+    right.durationMs - left.durationMs ||
+    left.kind.localeCompare(right.kind) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function comparePackageGateMatrixRecords(left: FrontierTestPackageGateMatrixRecord, right: FrontierTestPackageGateMatrixRecord): number {
+  return (
+    packageGateMatrixSelectionGroup(left.selection) - packageGateMatrixSelectionGroup(right.selection) ||
+    packageGateMatrixDependencyOrder(left) - packageGateMatrixDependencyOrder(right) ||
+    packageGateMatrixSelectionRank(left.selection) - packageGateMatrixSelectionRank(right.selection) ||
+    Number(right.required) - Number(left.required) ||
+    compareGateStatus(left.status, right.status) ||
+    left.packageId.localeCompare(right.packageId) ||
+    left.packagePath.localeCompare(right.packagePath) ||
+    left.packageName.localeCompare(right.packageName) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function compareGateStatus(left: FrontierTestGateEvidenceStatus, right: FrontierTestGateEvidenceStatus): number {
+  return gateStatusRank(right) - gateStatusRank(left);
+}
+
+function gateStatusRank(status: FrontierTestGateEvidenceStatus): number {
+  if (status === 'failed') return 4;
+  if (status === 'blocked') return 3;
+  if (status === 'unknown') return 2;
+  if (status === 'skipped') return 1;
+  return 0;
+}
+
+function normalizeGateEvidenceStatus(status: FrontierTestGateEvidenceInput['status']): FrontierTestGateEvidenceStatus {
+  if (status === true) return 'passed';
+  if (status === false) return 'failed';
+  const value = String(status ?? 'unknown').toLowerCase();
+  if (['passed', 'pass', 'ok', 'covered', 'success', 'succeeded', 'true', 'verified'].includes(value)) return 'passed';
+  if (['failed', 'fail', 'missing', 'error', 'errored', 'false', 'rejected'].includes(value)) return 'failed';
+  if (['skipped', 'skip', 'omitted', 'ignored'].includes(value)) return 'skipped';
+  if (['blocked', 'planned', 'pending', 'todo', 'waiting', 'flaky'].includes(value)) return 'blocked';
+  return 'unknown';
+}
+
+function normalizePackageGateMatrixSelection(value: FrontierTestPackageGateMatrixInput['selection']): FrontierTestPackageGateMatrixSelection {
+  if (value === true || value === undefined || value === null) return 'selected';
+  if (value === false) return 'skipped';
+  const normalized = String(value).toLowerCase().replace(/\s+/g, '-');
+  if (normalized.startsWith('dependency')) return 'dependency-selected';
+  if (['skipped', 'skip', 'unrelated', 'ignored'].includes(normalized)) return 'skipped';
+  return 'selected';
+}
+
+function packageGateMatrixSelectionGroup(selection: FrontierTestPackageGateMatrixSelection): number {
+  return selection === 'skipped' ? 1 : 0;
+}
+
+function packageGateMatrixSelectionRank(selection: FrontierTestPackageGateMatrixSelection): number {
+  if (selection === 'selected') return 0;
+  if (selection === 'dependency-selected') return 1;
+  return 2;
+}
+
+function packageGateMatrixDependencyOrder(record: FrontierTestPackageGateMatrixRecord): number {
+  return record.dependencyOrder ?? Number.MAX_SAFE_INTEGER;
+}
+
+function normalizeFailureTail(value: string | readonly string[] | undefined): string[] {
+  if (value === undefined) return [];
+  const lines = typeof value === 'string' ? splitFailureTail(value) : value.flatMap((entry) => splitFailureTail(entry));
+  return uniqueStrings(lines).slice(-5);
+}
+
+function splitFailureTail(value: string): string[] {
+  return String(value)
+    .split(/\r?\n/g)
+    .map((line) => line.replace(/\s+$/u, ''))
+    .filter((line) => line.trim().length > 0);
 }
 
 function selectEvidenceSpecs(
