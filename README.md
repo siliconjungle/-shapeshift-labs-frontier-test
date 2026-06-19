@@ -264,6 +264,63 @@ const gateEvidence = summarizeTestGateEvidence({
 });
 ```
 
+## Package Gate Matrix
+
+`summarizeTestPackageGateMatrix(...)` is the package-oriented dashboard shape for autonomous apply. Use it when a run needs to show the changed package gate, dependency-selected package gates, and skipped unrelated package gates in one compact table.
+
+For performance and testing dashboard views, keep the presentation simple:
+
+- Show `packageId`, `packagePath`, `packageName`, `selection`, `dependencyOrder`, `required`, `status`, `durationMs`, and `failureTail`.
+- Keep selected and dependency-selected rows ahead of skipped rows.
+- Preserve the dependency-order column exactly as the autonomous apply planner produced it.
+- Render only the failure tail so the matrix stays compact and scannable.
+- Keep the package identity visible so the dashboard can point back to the correct workspace or release-train entry.
+
+Example:
+
+```ts
+import { summarizeTestPackageGateMatrix } from '@shapeshift-labs/frontier-test';
+
+const packageGateMatrix = summarizeTestPackageGateMatrix({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    {
+      id: 'pkg.frontier-test',
+      packageId: 'frontier-test',
+      packagePath: 'packages/frontier-test',
+      packageName: '@shapeshift-labs/frontier-test',
+      selection: 'selected',
+      dependencyOrder: 0,
+      required: true,
+      status: 'passed',
+      durationMs: 42
+    },
+    {
+      id: 'pkg.frontier-swarm-codex',
+      packageId: 'frontier-swarm-codex',
+      packagePath: 'packages/frontier-swarm-codex',
+      packageName: '@shapeshift-labs/frontier-swarm-codex',
+      selection: 'dependency-selected',
+      dependencyOrder: 1,
+      required: true,
+      status: 'failed',
+      durationMs: 120,
+      failureTail: 'npm run test\nerror: missing export'
+    },
+    {
+      id: 'pkg.frontier-swarm',
+      packageId: 'frontier-swarm',
+      packagePath: 'packages/frontier-swarm',
+      packageName: '@shapeshift-labs/frontier-swarm',
+      selection: 'skipped',
+      required: false,
+      status: 'skipped',
+      durationMs: 0
+    }
+  ]
+});
+```
+
 ## Surface
 
 - `createTestManifest`, `defineSpec`, `compileTestManifest`, `validateTestManifest`, and `queryTestManifest` describe declarative test/spec evidence.

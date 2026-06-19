@@ -18,6 +18,7 @@ import {
   recordEvidenceTestRun,
   recordTestRun,
   summarizeTestGateEvidence,
+  summarizeTestPackageGateMatrix,
   redactTestValue,
   summarizeTestCoverage,
   traceTestImpact,
@@ -266,6 +267,82 @@ const passedEvidenceRun = recordEvidenceTestRun(evidenceManifest, {
   }
 });
 assert.strictEqual(passedEvidenceRun.run.status, 'passed');
+
+const packageGateMatrix = summarizeTestPackageGateMatrix({
+  packageScope: ['packages/frontier-test'],
+  gates: [
+    {
+      id: 'pkg.frontier-test',
+      packageId: 'frontier-test',
+      packagePath: 'packages/frontier-test',
+      packageName: '@shapeshift-labs/frontier-test',
+      selection: 'selected',
+      dependencyOrder: 0,
+      required: true,
+      status: 'passed',
+      durationMs: 42,
+      artifacts: ['reports/frontier-test.json'],
+      packageScope: ['packages/frontier-test']
+    },
+    {
+      id: 'pkg.frontier-swarm-codex',
+      packageId: 'frontier-swarm-codex',
+      packagePath: 'packages/frontier-swarm-codex',
+      packageName: '@shapeshift-labs/frontier-swarm-codex',
+      selection: 'dependency-selected',
+      dependencyOrder: 1,
+      required: true,
+      status: 'failed',
+      durationMs: 120,
+      failureTail: 'npm run test\n> frontier-swarm-codex@0.1.1 test\nerror: missing export frontier-swarm-codex/package gate matrix',
+      artifacts: ['dist/build.log'],
+      packageScope: ['packages/frontier-swarm-codex']
+    },
+    {
+      id: 'pkg.frontier-workflow',
+      packageId: 'frontier-workflow',
+      packagePath: 'packages/frontier-workflow',
+      packageName: '@shapeshift-labs/frontier-workflow',
+      selection: 'selected',
+      dependencyOrder: 2,
+      required: false,
+      status: 'passed',
+      durationMs: 15,
+      packageScope: ['packages/frontier-workflow']
+    },
+    {
+      id: 'pkg.frontier-swarm',
+      packageId: 'frontier-swarm',
+      packagePath: 'packages/frontier-swarm',
+      packageName: '@shapeshift-labs/frontier-swarm',
+      selection: 'skipped',
+      required: false,
+      status: 'skipped',
+      durationMs: 0,
+      artifacts: ['reports/frontier-swarm.json'],
+      packageScope: ['packages/frontier-swarm']
+    }
+  ]
+});
+assert.strictEqual(packageGateMatrix.kind, 'frontier.test.package-gate-matrix');
+assert.strictEqual(packageGateMatrix.total, 4);
+assert.strictEqual(packageGateMatrix.selected, 2);
+assert.strictEqual(packageGateMatrix.dependencySelected, 1);
+assert.strictEqual(packageGateMatrix.skipped, 1);
+assert.strictEqual(packageGateMatrix.required, 2);
+assert.strictEqual(packageGateMatrix.optional, 2);
+assert.strictEqual(packageGateMatrix.passed, 2);
+assert.strictEqual(packageGateMatrix.failed, 1);
+assert.strictEqual(packageGateMatrix.durationMs, 177);
+assert.ok(packageGateMatrix.packageScope.includes('packages/frontier-test'));
+assert.ok(packageGateMatrix.packageScope.includes('packages/frontier-swarm-codex'));
+assert.deepStrictEqual(packageGateMatrix.gates.map((gate) => gate.id), ['pkg.frontier-test', 'pkg.frontier-swarm-codex', 'pkg.frontier-workflow', 'pkg.frontier-swarm']);
+assert.strictEqual(packageGateMatrix.gates[0].packageId, 'frontier-test');
+assert.strictEqual(packageGateMatrix.gates[1].packagePath, 'packages/frontier-swarm-codex');
+assert.strictEqual(packageGateMatrix.gates[1].packageName, '@shapeshift-labs/frontier-swarm-codex');
+assert.strictEqual(packageGateMatrix.gates[1].selection, 'dependency-selected');
+assert.deepStrictEqual(packageGateMatrix.gates[1].failureTail, ['npm run test', '> frontier-swarm-codex@0.1.1 test', 'error: missing export frontier-swarm-codex/package gate matrix']);
+assert.strictEqual(packageGateMatrix.gates[3].selection, 'skipped');
 
 const gateEvidence = summarizeTestGateEvidence({
   packageScope: ['packages/frontier-test'],

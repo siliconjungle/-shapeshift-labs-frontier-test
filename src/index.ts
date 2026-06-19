@@ -25,6 +25,8 @@ export const FRONTIER_TEST_EVIDENCE_KIND = 'frontier.test.evidence';
 export const FRONTIER_TEST_EVIDENCE_VERSION = 1;
 export const FRONTIER_TEST_GATE_EVIDENCE_KIND = 'frontier.test.gate-evidence';
 export const FRONTIER_TEST_GATE_EVIDENCE_VERSION = 1;
+export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND = 'frontier.test.package-gate-matrix';
+export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION = 1;
 
 export type FrontierTestKind =
   | 'unit'
@@ -717,6 +719,65 @@ export interface FrontierTestGateEvidenceSummary {
   byKind: Record<string, FrontierTestGateEvidenceKindSummary>;
 }
 
+export type FrontierTestPackageGateMatrixSelection = 'selected' | 'dependency-selected' | 'skipped';
+
+export interface FrontierTestPackageGateMatrixInput {
+  id: string;
+  packageId: string;
+  packagePath: string;
+  packageName: string;
+  selection: FrontierTestPackageGateMatrixSelection | boolean;
+  dependencyOrder?: number;
+  required?: boolean;
+  durationMs?: number;
+  failureTail?: string | readonly string[];
+  artifacts?: readonly string[];
+  packageScope?: readonly string[];
+  status?: FrontierTestGateEvidenceStatus | FrontierTestStatus | string | boolean;
+  message?: string;
+}
+
+export interface FrontierTestPackageGateMatrixRecord {
+  id: string;
+  packageId: string;
+  packagePath: string;
+  packageName: string;
+  selection: FrontierTestPackageGateMatrixSelection;
+  dependencyOrder?: number;
+  required: boolean;
+  status: FrontierTestGateEvidenceStatus;
+  durationMs: number;
+  failureTail: string[];
+  artifacts: string[];
+  packageScope: string[];
+  message?: string;
+}
+
+export interface FrontierTestPackageGateMatrixSummaryInput {
+  gates: readonly FrontierTestPackageGateMatrixInput[];
+  packageScope?: readonly string[];
+  artifacts?: readonly string[];
+}
+
+export interface FrontierTestPackageGateMatrixSummary {
+  kind: typeof FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND;
+  version: typeof FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION;
+  total: number;
+  selected: number;
+  dependencySelected: number;
+  skipped: number;
+  required: number;
+  optional: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  unknown: number;
+  durationMs: number;
+  artifactCount: number;
+  packageScope: string[];
+  gates: FrontierTestPackageGateMatrixRecord[];
+}
+
 export function defineTestSpec(input: FrontierTestSpecInput): FrontierTestSpec {
   return normalizeSpec(input);
 }
@@ -1128,6 +1189,42 @@ export function summarizeTestGateEvidence(input: FrontierTestGateEvidenceSummary
 
   for (const bucket of Object.values(summary.byKind)) {
     bucket.optional = bucket.total - bucket.required;
+  }
+
+  return summary;
+}
+
+export function summarizeTestPackageGateMatrix(input: FrontierTestPackageGateMatrixSummaryInput): FrontierTestPackageGateMatrixSummary {
+  const gates = input.gates.map(normalizePackageGateMatrix).sort(comparePackageGateMatrixRecords);
+  const packageScope = uniqueStrings((input.packageScope ?? []).concat(gates.flatMap((gate) => gate.packageScope), gates.map((gate) => gate.packagePath)));
+  const artifacts = uniqueStrings((input.artifacts ?? []).concat(gates.flatMap((gate) => gate.artifacts)));
+  const summary: FrontierTestPackageGateMatrixSummary = {
+    kind: FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND,
+    version: FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION,
+    total: gates.length,
+    selected: 0,
+    dependencySelected: 0,
+    skipped: 0,
+    required: 0,
+    optional: 0,
+    passed: 0,
+    failed: 0,
+    blocked: 0,
+    unknown: 0,
+    durationMs: 0,
+    artifactCount: artifacts.length,
+    packageScope,
+    gates
+  };
+
+  for (const gate of gates) {
+    summary.durationMs += gate.durationMs;
+    if (gate.status !== 'skipped') summary[gate.status] += 1;
+    if (gate.required) summary.required += 1;
+    else summary.optional += 1;
+    if (gate.selection === 'selected') summary.selected += 1;
+    else if (gate.selection === 'dependency-selected') summary.dependencySelected += 1;
+    else summary.skipped += 1;
   }
 
   return summary;
@@ -1703,12 +1800,46 @@ function normalizeGateEvidence(input: FrontierTestGateEvidenceInput): FrontierTe
   };
 }
 
+function normalizePackageGateMatrix(input: FrontierTestPackageGateMatrixInput): FrontierTestPackageGateMatrixRecord {
+  const status = normalizeGateEvidenceStatus(input.status ?? 'unknown');
+  const dependencyOrder = input.dependencyOrder === undefined || !Number.isFinite(input.dependencyOrder) ? undefined : Math.max(0, Math.floor(input.dependencyOrder));
+  return {
+    id: normalizeId(input.id, 'test package gate matrix id'),
+    packageId: normalizeId(input.packageId, 'test package gate matrix package id'),
+    packagePath: normalizeFilePath(input.packagePath),
+    packageName: String(input.packageName),
+    selection: normalizePackageGateMatrixSelection(input.selection),
+    ...(dependencyOrder !== undefined ? { dependencyOrder } : {}),
+    required: input.required !== false,
+    status,
+    durationMs: Math.max(0, Math.floor(input.durationMs ?? 0)),
+    failureTail: normalizeFailureTail(input.failureTail ?? (status === 'failed' || status === 'blocked' ? input.message : undefined)),
+    artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
+    packageScope: uniqueStrings((input.packageScope ?? []).concat(input.packagePath)),
+    ...(input.message ? { message: input.message } : {})
+  };
+}
+
 function compareGateEvidenceRecords(left: FrontierTestGateEvidenceRecord, right: FrontierTestGateEvidenceRecord): number {
   return (
     Number(right.required) - Number(left.required) ||
     compareGateStatus(left.status, right.status) ||
     right.durationMs - left.durationMs ||
     left.kind.localeCompare(right.kind) ||
+    left.id.localeCompare(right.id)
+  );
+}
+
+function comparePackageGateMatrixRecords(left: FrontierTestPackageGateMatrixRecord, right: FrontierTestPackageGateMatrixRecord): number {
+  return (
+    packageGateMatrixSelectionGroup(left.selection) - packageGateMatrixSelectionGroup(right.selection) ||
+    packageGateMatrixDependencyOrder(left) - packageGateMatrixDependencyOrder(right) ||
+    packageGateMatrixSelectionRank(left.selection) - packageGateMatrixSelectionRank(right.selection) ||
+    Number(right.required) - Number(left.required) ||
+    compareGateStatus(left.status, right.status) ||
+    left.packageId.localeCompare(right.packageId) ||
+    left.packagePath.localeCompare(right.packagePath) ||
+    left.packageName.localeCompare(right.packageName) ||
     left.id.localeCompare(right.id)
   );
 }
@@ -1734,6 +1865,29 @@ function normalizeGateEvidenceStatus(status: FrontierTestGateEvidenceInput['stat
   if (['skipped', 'skip', 'omitted', 'ignored'].includes(value)) return 'skipped';
   if (['blocked', 'planned', 'pending', 'todo', 'waiting', 'flaky'].includes(value)) return 'blocked';
   return 'unknown';
+}
+
+function normalizePackageGateMatrixSelection(value: FrontierTestPackageGateMatrixInput['selection']): FrontierTestPackageGateMatrixSelection {
+  if (value === true || value === undefined || value === null) return 'selected';
+  if (value === false) return 'skipped';
+  const normalized = String(value).toLowerCase().replace(/\s+/g, '-');
+  if (normalized.startsWith('dependency')) return 'dependency-selected';
+  if (['skipped', 'skip', 'unrelated', 'ignored'].includes(normalized)) return 'skipped';
+  return 'selected';
+}
+
+function packageGateMatrixSelectionGroup(selection: FrontierTestPackageGateMatrixSelection): number {
+  return selection === 'skipped' ? 1 : 0;
+}
+
+function packageGateMatrixSelectionRank(selection: FrontierTestPackageGateMatrixSelection): number {
+  if (selection === 'selected') return 0;
+  if (selection === 'dependency-selected') return 1;
+  return 2;
+}
+
+function packageGateMatrixDependencyOrder(record: FrontierTestPackageGateMatrixRecord): number {
+  return record.dependencyOrder ?? Number.MAX_SAFE_INTEGER;
 }
 
 function normalizeFailureTail(value: string | readonly string[] | undefined): string[] {
