@@ -23,6 +23,13 @@ import {
   type FrontierTestRunRecord,
   type FrontierTestSpec
 } from '../src/index.ts';
+import {
+  runTestGateCommand,
+  runTestGateSuite,
+  type FrontierTestNodeGateInput,
+  type FrontierTestNodeGateResult,
+  type FrontierTestNodeGateSuiteResult
+} from '../src/node.ts';
 
 const spec: FrontierTestSpec = {
   kind: 'frontier.test.spec',
@@ -80,6 +87,16 @@ const gateExecution: FrontierTestGateExecutionRecord = recordTestGateExecution({
   oracle: { id: 'oracle.type', matches: true }
 });
 const gateExecutionSummary = summarizeTestGateExecutions({ executions: [gateExecution] });
+const nodeGateInput: FrontierTestNodeGateInput = {
+  id: 'gate.node.type',
+  command: 'node',
+  args: ['--version'],
+  kind: 'smoke',
+  artifacts: ['reports/node-version.txt'],
+  timeoutMs: 1000
+};
+const nodeGatePromise: Promise<FrontierTestNodeGateResult> = runTestGateCommand(nodeGateInput);
+const nodeGateSuitePromise: Promise<FrontierTestNodeGateSuiteResult> = runTestGateSuite({ gates: [nodeGateInput] });
 const tap = encodeTestTap(run);
 const junit = encodeTestJunitXml(run);
 
@@ -96,3 +113,5 @@ plan.commandIds satisfies string[];
 evidence.observations satisfies readonly unknown[];
 gateExecution.artifactPaths satisfies string[];
 gateExecutionSummary.gates satisfies readonly unknown[];
+void nodeGatePromise;
+void nodeGateSuitePromise;

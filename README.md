@@ -40,6 +40,7 @@ The published Frontier package family is generated from one shared package catal
 - [`@shapeshift-labs/frontier-swarm`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm): Hierarchical swarm plans, lanes, compute profiles, ownership policy, semantic ownership regions, task queues, event streams, run records, merge bundles, merge indexes, queue overlays, merge admission, coordinator dashboards, changed-path checks, and proof artifacts for Frontier agent work.
 - [`@shapeshift-labs/frontier-swarm-git`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-git): Node Git, workspace, patch, changed-path, write-fence, package-link repair, patch check, HEAD read, blob hash, and apply-ledger adapter for Frontier swarm runners.
 - [`@shapeshift-labs/frontier-swarm-codex`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-codex): Node Codex CLI adapter for Frontier swarm plans, including prompt rendering, worktree and snapshot workspaces, Codex argument compatibility, browser resource allocation, JSONL capture, verification commands, pid-backed stop, collect/apply workflows, merge indexes, queue overlays, merge bundles, normalized job evidence, coordinator query artifacts, and result artifacts.
+- [`@shapeshift-labs/frontier-loom-ui`](https://www.npmjs.com/package/@shapeshift-labs/frontier-loom-ui): Read-only Loom and Frontier operator dashboard for workspace-lifetime progress, active agents, queue state, evidence/admission status, run events, semantic leases, gate executions, git apply/workspace evidence, and coordinator steering intent files.
 - [`@shapeshift-labs/frontier-lang-kernel`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-kernel): Runtime-neutral semantic source graph, type/lattice/extern declarations, patch bundles, replay, hashing, evidence records, and merge-admission kernel for Frontier Lang.
 - [`@shapeshift-labs/frontier-lang-parser`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-parser): Dependency-light Frontier Lang parser for modules, entities, state, actions, effects, types, externs, targets, and lattice declarations.
 - [`@shapeshift-labs/frontier-lang-checker`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-checker): Checker and diagnostics for Frontier Lang semantic documents, including type symbols, effects, regions, lattice laws, CRDT metadata, and patch evidence.
@@ -136,6 +137,7 @@ Package source repositories:
 - [`siliconjungle/-shapeshift-labs-frontier-swarm`](https://github.com/siliconjungle/-shapeshift-labs-frontier-swarm)
 - [`siliconjungle/-shapeshift-labs-frontier-swarm-git`](https://github.com/siliconjungle/-shapeshift-labs-frontier-swarm-git)
 - [`siliconjungle/-shapeshift-labs-frontier-swarm-codex`](https://github.com/siliconjungle/-shapeshift-labs-frontier-swarm-codex)
+- [`siliconjungle/frontier-loom-ui`](https://github.com/siliconjungle/frontier-loom-ui)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-kernel`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-kernel)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-parser`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-parser)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-checker`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-checker)
@@ -269,6 +271,27 @@ const gateEvidence = summarizeTestGateEvidence({
   ]
 });
 ```
+
+## Node Gate Runner
+
+The root package stays runtime-neutral. `@shapeshift-labs/frontier-test/node` is the Node-only adapter that actually runs command gates and records them using the same `frontier.test.gate-execution` and `frontier.test.gate-evidence` shapes.
+
+Use it for standard build, test, fuzz, smoke, browser, and oracle commands when a coordinator needs replayable gate evidence instead of ad hoc shell logs.
+
+```ts
+import { runTestGateSuite } from '@shapeshift-labs/frontier-test/node';
+
+const result = await runTestGateSuite({
+  outDir: 'agent-runs/current/gates',
+  gates: [
+    { id: 'gate.build', kind: 'build', command: 'npm', args: ['run', 'build'], required: true },
+    { id: 'gate.fuzz', kind: 'fuzz', command: 'node', args: ['test/fuzz.mjs', '--cases', '300'], artifacts: ['benchmarks/results/fuzz.json'] },
+    { id: 'gate.browser', kind: 'browser', command: 'npx', args: ['playwright', 'test'], artifacts: ['playwright-report/index.html'] }
+  ]
+});
+```
+
+`runTestGateSuite(...)` runs gates sequentially, captures bounded stdout/stderr tails, records exit code or timeout status, annotates artifact paths with file sizes when they exist, writes `gate-executions.jsonl` and `gate-summary.json` when `outDir` is provided, and returns `ok: false` when a required gate fails, blocks, or remains unknown. Optional failed gates are preserved in the evidence without failing the suite.
 
 ## Package Gate Matrix
 

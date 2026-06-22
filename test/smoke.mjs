@@ -1,4 +1,7 @@
 import assert from 'node:assert';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {
   collectTestEvidence,
   compileTestManifest,
@@ -28,6 +31,12 @@ import {
   traceTestImpact,
   validateTestManifest
 } from '../dist/index.js';
+import {
+  FRONTIER_TEST_NODE_GATE_EXECUTIONS_FILE,
+  FRONTIER_TEST_NODE_GATE_SUMMARY_FILE,
+  runTestGateCommand,
+  runTestGateSuite
+} from '../dist/node.js';
 
 const manifest = createTestManifest({
   id: 'app.tests',
@@ -487,6 +496,63 @@ assert.strictEqual(gateExecutionSummary.failed, 1);
 assert.strictEqual(gateExecutionSummary.passed, 1);
 assert.strictEqual(gateExecutionSummary.byKind.oracle.failed, 1);
 assert.strictEqual(gateExecutionSummary.byKind.build.passed, 1);
+
+const nodeGateTmp = await fs.mkdtemp(path.join(os.tmpdir(), 'frontier-test-node-gates-'));
+await fs.writeFile(path.join(nodeGateTmp, 'artifact.json'), '{"ok":true}\n');
+const nodeGatePass = await runTestGateCommand({
+  id: 'gate.node.unit',
+  kind: 'unit',
+  command: process.execPath,
+  args: ['-e', 'console.log("node gate pass")'],
+  cwd: nodeGateTmp,
+  env: { FRONTIER_TEST_NODE_GATE: '1' },
+  envKeys: ['FRONTIER_TEST_NODE_GATE'],
+  artifacts: ['artifact.json'],
+  package: 'packages/frontier-test',
+  metadata: { smoke: true }
+});
+assert.strictEqual(nodeGatePass.ok, true);
+assert.strictEqual(nodeGatePass.execution.status, 'passed');
+assert.strictEqual(nodeGatePass.execution.gateKind, 'unit');
+assert.deepStrictEqual(nodeGatePass.execution.stdoutTail, ['node gate pass']);
+assert.strictEqual(nodeGatePass.execution.artifacts[0].bytes, 12);
+assert.ok(nodeGatePass.execution.packageScope.includes('packages/frontier-test'));
+
+const nodeGateSuite = await runTestGateSuite({
+  outDir: path.join(nodeGateTmp, 'evidence'),
+  gates: [
+    {
+      id: 'gate.node.smoke',
+      command: process.execPath,
+      args: ['-e', 'console.error("node gate smoke")'],
+      cwd: nodeGateTmp,
+      kind: 'smoke',
+      required: true
+    },
+    {
+      id: 'gate.node.optional-build',
+      command: process.execPath,
+      args: ['-e', 'process.stderr.write("optional build failed\\n"); process.exit(2)'],
+      cwd: nodeGateTmp,
+      kind: 'build',
+      required: false
+    }
+  ]
+});
+assert.strictEqual(nodeGateSuite.ok, true);
+assert.strictEqual(nodeGateSuite.summary.total, 2);
+assert.strictEqual(nodeGateSuite.summary.passed, 1);
+assert.strictEqual(nodeGateSuite.summary.failed, 1);
+assert.strictEqual(nodeGateSuite.summary.byKind.smoke.passed, 1);
+assert.strictEqual(nodeGateSuite.summary.byKind.build.failed, 1);
+assert.ok(nodeGateSuite.files.gateExecutionsPath.endsWith(FRONTIER_TEST_NODE_GATE_EXECUTIONS_FILE));
+assert.ok(nodeGateSuite.files.gateSummaryPath.endsWith(FRONTIER_TEST_NODE_GATE_SUMMARY_FILE));
+const nodeGateJsonl = (await fs.readFile(nodeGateSuite.files.gateExecutionsPath, 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+assert.strictEqual(nodeGateJsonl.length, 2);
+assert.ok(nodeGateJsonl.every((entry) => entry.kind === 'frontier.test.gate-execution'));
+const nodeGateSummary = JSON.parse(await fs.readFile(nodeGateSuite.files.gateSummaryPath, 'utf8'));
+assert.strictEqual(nodeGateSummary.kind, 'frontier.test.gate-evidence');
+assert.strictEqual(nodeGateSummary.failed, 1);
 
 const routingCorpus = createTestModelRoutingOracleCorpus();
 assert.strictEqual(routingCorpus.kind, 'frontier.test.model-routing-oracle');
