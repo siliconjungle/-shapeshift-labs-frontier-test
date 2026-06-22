@@ -25,6 +25,8 @@ export const FRONTIER_TEST_EVIDENCE_KIND = 'frontier.test.evidence';
 export const FRONTIER_TEST_EVIDENCE_VERSION = 1;
 export const FRONTIER_TEST_GATE_EVIDENCE_KIND = 'frontier.test.gate-evidence';
 export const FRONTIER_TEST_GATE_EVIDENCE_VERSION = 1;
+export const FRONTIER_TEST_GATE_EXECUTION_KIND = 'frontier.test.gate-execution';
+export const FRONTIER_TEST_GATE_EXECUTION_VERSION = 1;
 export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_KIND = 'frontier.test.package-gate-matrix';
 export const FRONTIER_TEST_PACKAGE_GATE_MATRIX_VERSION = 1;
 export const FRONTIER_TEST_MODEL_ROUTING_ORACLE_KIND = 'frontier.test.model-routing-oracle';
@@ -654,7 +656,9 @@ export interface FrontierTestEvidenceRunRecord {
   evidence: FrontierTestEvidenceRecord;
 }
 
-export type FrontierTestGateKind = 'unit' | 'build' | 'fuzz' | 'smoke' | 'browser' | string;
+export type FrontierTestGateKind = 'test' | 'unit' | 'build' | 'fuzz' | 'smoke' | 'browser' | 'oracle' | string;
+
+export type FrontierTestGateExecutionKind = 'test' | 'build' | 'fuzz' | 'browser' | 'oracle' | FrontierTestGateKind;
 
 export type FrontierTestGateEvidenceStatus = 'passed' | 'failed' | 'skipped' | 'blocked' | 'unknown';
 
@@ -719,6 +723,138 @@ export interface FrontierTestGateEvidenceSummary {
   packageScope: string[];
   gates: FrontierTestGateEvidenceRecord[];
   byKind: Record<string, FrontierTestGateEvidenceKindSummary>;
+}
+
+export interface FrontierTestGateArtifactInput {
+  path: string;
+  kind?: string;
+  role?: string;
+  bytes?: number;
+  sha256?: string;
+  mimeType?: string;
+  metadata?: unknown;
+}
+
+export interface FrontierTestGateArtifactRecord {
+  path: string;
+  kind?: string;
+  role?: string;
+  bytes?: number;
+  sha256?: string;
+  mimeType?: string;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestGateReplayEvidenceInput {
+  command?: string | readonly string[];
+  args?: readonly string[];
+  cwd?: string;
+  envKeys?: readonly string[];
+  seed?: string | number;
+  sourceRefs?: readonly string[];
+  jsonlPath?: string;
+  proofPath?: string;
+  tracePath?: string;
+  metadata?: unknown;
+}
+
+export interface FrontierTestGateReplayEvidenceRecord {
+  command: string[];
+  cwd?: string;
+  envKeys: string[];
+  seed?: string | number;
+  sourceRefs: string[];
+  jsonlPath?: string;
+  proofPath?: string;
+  tracePath?: string;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestGateOracleEvidenceInput {
+  id: string;
+  scenario?: string;
+  expected?: unknown;
+  actual?: unknown;
+  matches?: boolean;
+  mismatches?: readonly string[];
+  comparisonArtifact?: string;
+  metadata?: unknown;
+}
+
+export interface FrontierTestGateOracleEvidenceRecord {
+  id: string;
+  scenario?: string;
+  expected?: JsonValue;
+  actual?: JsonValue;
+  matches: boolean;
+  mismatches: string[];
+  comparisonArtifact?: string;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestGateExecutionInput {
+  id: string;
+  kind: FrontierTestGateExecutionKind;
+  status: FrontierTestGateEvidenceStatus | FrontierTestStatus | string | boolean;
+  rawStatus?: string;
+  required?: boolean;
+  startedAt?: number;
+  finishedAt?: number;
+  durationMs?: number;
+  attempt?: number;
+  maxAttempts?: number;
+  command?: string | readonly string[];
+  args?: readonly string[];
+  cwd?: string;
+  envKeys?: readonly string[];
+  exitCode?: number;
+  signal?: string;
+  stdoutTail?: string | readonly string[];
+  stderrTail?: string | readonly string[];
+  failureTail?: string | readonly string[];
+  artifacts?: readonly (string | FrontierTestGateArtifactInput)[];
+  package?: string;
+  packageScope?: readonly string[];
+  message?: string;
+  replay?: FrontierTestGateReplayEvidenceInput;
+  oracle?: FrontierTestGateOracleEvidenceInput;
+  metadata?: unknown;
+}
+
+export interface FrontierTestGateExecutionRecord {
+  kind: typeof FRONTIER_TEST_GATE_EXECUTION_KIND;
+  version: typeof FRONTIER_TEST_GATE_EXECUTION_VERSION;
+  id: string;
+  gateKind: FrontierTestGateExecutionKind;
+  required: boolean;
+  status: FrontierTestGateEvidenceStatus;
+  rawStatus?: string;
+  startedAt: number;
+  finishedAt: number;
+  durationMs: number;
+  attempt: number;
+  maxAttempts: number;
+  command: string[];
+  cwd?: string;
+  envKeys: string[];
+  exitCode?: number;
+  signal?: string;
+  stdoutTail: string[];
+  stderrTail: string[];
+  failureTail: string[];
+  artifacts: FrontierTestGateArtifactRecord[];
+  artifactPaths: string[];
+  packageScope: string[];
+  message?: string;
+  replay?: FrontierTestGateReplayEvidenceRecord;
+  oracle?: FrontierTestGateOracleEvidenceRecord;
+  metadata?: JsonObject;
+}
+
+export interface FrontierTestGateExecutionSummaryInput {
+  executions: readonly (FrontierTestGateExecutionInput | FrontierTestGateExecutionRecord)[];
+  packageScope?: readonly string[];
+  artifacts?: readonly string[];
 }
 
 export type FrontierTestPackageGateMatrixSelection = 'selected' | 'dependency-selected' | 'skipped';
@@ -1304,6 +1440,70 @@ export function summarizeTestGateEvidence(input: FrontierTestGateEvidenceSummary
   }
 
   return summary;
+}
+
+export function recordTestGateExecution(input: FrontierTestGateExecutionInput | FrontierTestGateExecutionRecord): FrontierTestGateExecutionRecord {
+  if (isGateExecutionRecord(input)) return cloneJson(input as unknown as JsonValue) as unknown as FrontierTestGateExecutionRecord;
+  const status = normalizeGateEvidenceStatus(input.status);
+  const durationMs = Math.max(0, Math.floor(input.durationMs ?? ((input.finishedAt ?? input.startedAt ?? 0) - (input.startedAt ?? input.finishedAt ?? 0))));
+  const startedAt = Math.max(0, Math.floor(input.startedAt ?? (input.finishedAt !== undefined ? input.finishedAt - durationMs : Date.now())));
+  const finishedAt = Math.max(startedAt, Math.floor(input.finishedAt ?? (startedAt + durationMs)));
+  const artifacts = normalizeGateArtifacts(input.artifacts);
+  const command = normalizeGateCommand(input.command, input.args);
+  const replay = normalizeGateReplayEvidence(input.replay ?? (command.length || input.cwd || input.envKeys?.length ? {
+    command,
+    cwd: input.cwd,
+    envKeys: input.envKeys
+  } : undefined));
+  const oracle = input.oracle ? normalizeGateOracleEvidence(input.oracle) : undefined;
+  return {
+    kind: FRONTIER_TEST_GATE_EXECUTION_KIND,
+    version: FRONTIER_TEST_GATE_EXECUTION_VERSION,
+    id: normalizeId(input.id, 'test gate execution id'),
+    gateKind: input.kind,
+    required: input.required !== false,
+    status,
+    ...(input.rawStatus ? { rawStatus: String(input.rawStatus) } : {}),
+    startedAt,
+    finishedAt,
+    durationMs: Math.max(0, finishedAt - startedAt, durationMs),
+    attempt: Math.max(1, Math.floor(input.attempt ?? 1)),
+    maxAttempts: Math.max(1, Math.floor(input.maxAttempts ?? input.attempt ?? 1)),
+    command,
+    ...(input.cwd ? { cwd: input.cwd } : {}),
+    envKeys: uniqueStrings(input.envKeys),
+    ...(input.exitCode !== undefined && Number.isFinite(input.exitCode) ? { exitCode: Math.floor(input.exitCode) } : {}),
+    ...(input.signal ? { signal: String(input.signal) } : {}),
+    stdoutTail: normalizeFailureTail(input.stdoutTail),
+    stderrTail: normalizeFailureTail(input.stderrTail),
+    failureTail: normalizeFailureTail(input.failureTail ?? (status === 'failed' || status === 'blocked' ? input.message : undefined)),
+    artifacts,
+    artifactPaths: artifacts.map((artifact) => artifact.path),
+    packageScope: uniqueStrings((input.packageScope ?? []).concat(input.package ? [input.package] : [])),
+    ...(input.message ? { message: input.message } : {}),
+    ...(replay ? { replay } : {}),
+    ...(oracle ? { oracle } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+export function summarizeTestGateExecutions(input: FrontierTestGateExecutionSummaryInput): FrontierTestGateEvidenceSummary {
+  const executions = input.executions.map(recordTestGateExecution);
+  return summarizeTestGateEvidence({
+    packageScope: input.packageScope,
+    artifacts: uniqueStrings((input.artifacts ?? []).concat(executions.flatMap((execution) => execution.artifactPaths))),
+    gates: executions.map((execution) => ({
+      id: execution.id,
+      kind: execution.gateKind,
+      required: execution.required,
+      status: execution.status,
+      durationMs: execution.durationMs,
+      failureTail: execution.failureTail.length ? execution.failureTail : execution.stderrTail,
+      artifacts: execution.artifactPaths,
+      packageScope: execution.packageScope,
+      message: execution.message
+    }))
+  });
 }
 
 export function summarizeTestPackageGateMatrix(input: FrontierTestPackageGateMatrixSummaryInput): FrontierTestPackageGateMatrixSummary {
@@ -1982,6 +2182,78 @@ function normalizeGateEvidence(input: FrontierTestGateEvidenceInput): FrontierTe
     artifacts: uniqueStrings((input.artifacts ?? []).map(normalizeFilePath)),
     packageScope,
     ...(input.message ? { message: input.message } : {})
+  };
+}
+
+function isGateExecutionRecord(input: FrontierTestGateExecutionInput | FrontierTestGateExecutionRecord): input is FrontierTestGateExecutionRecord {
+  return (input as { kind?: unknown; version?: unknown }).kind === FRONTIER_TEST_GATE_EXECUTION_KIND
+    && (input as { version?: unknown }).version === FRONTIER_TEST_GATE_EXECUTION_VERSION;
+}
+
+function normalizeGateCommand(command: FrontierTestGateExecutionInput['command'], args?: readonly string[]): string[] {
+  const commandParts = Array.isArray(command)
+    ? command.map((part) => String(part)).filter(Boolean)
+    : typeof command === 'string' && command.trim()
+      ? command.trim().split(/\s+/g)
+      : [];
+  return commandParts.concat((args ?? []).map((part) => String(part)).filter(Boolean));
+}
+
+function normalizeGateArtifacts(input: FrontierTestGateExecutionInput['artifacts']): FrontierTestGateArtifactRecord[] {
+  const out: FrontierTestGateArtifactRecord[] = [];
+  const seen = new Set<string>();
+  for (const artifact of input ?? []) {
+    const record = typeof artifact === 'string'
+      ? { path: normalizeFilePath(artifact) }
+      : normalizeGateArtifact(artifact);
+    if (seen.has(record.path)) continue;
+    seen.add(record.path);
+    out.push(record);
+  }
+  return out;
+}
+
+function normalizeGateArtifact(input: FrontierTestGateArtifactInput): FrontierTestGateArtifactRecord {
+  return {
+    path: normalizeFilePath(input.path),
+    ...(input.kind ? { kind: String(input.kind) } : {}),
+    ...(input.role ? { role: String(input.role) } : {}),
+    ...(input.bytes !== undefined && Number.isFinite(input.bytes) ? { bytes: Math.max(0, Math.floor(input.bytes)) } : {}),
+    ...(input.sha256 ? { sha256: String(input.sha256) } : {}),
+    ...(input.mimeType ? { mimeType: String(input.mimeType) } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+}
+
+function normalizeGateReplayEvidence(input: FrontierTestGateReplayEvidenceInput | undefined): FrontierTestGateReplayEvidenceRecord | undefined {
+  if (!input) return undefined;
+  const command = normalizeGateCommand(input.command, input.args);
+  const record: FrontierTestGateReplayEvidenceRecord = {
+    command,
+    ...(input.cwd ? { cwd: input.cwd } : {}),
+    envKeys: uniqueStrings(input.envKeys),
+    ...(input.seed !== undefined ? { seed: typeof input.seed === 'number' ? input.seed : String(input.seed) } : {}),
+    sourceRefs: uniqueStrings((input.sourceRefs ?? []).map(normalizeFilePath)),
+    ...(input.jsonlPath ? { jsonlPath: normalizeFilePath(input.jsonlPath) } : {}),
+    ...(input.proofPath ? { proofPath: normalizeFilePath(input.proofPath) } : {}),
+    ...(input.tracePath ? { tracePath: normalizeFilePath(input.tracePath) } : {}),
+    ...optionalObject('metadata', input.metadata)
+  };
+  return command.length || record.cwd || record.envKeys.length || record.seed !== undefined || record.sourceRefs.length || record.jsonlPath || record.proofPath || record.tracePath || record.metadata
+    ? record
+    : undefined;
+}
+
+function normalizeGateOracleEvidence(input: FrontierTestGateOracleEvidenceInput): FrontierTestGateOracleEvidenceRecord {
+  return {
+    id: normalizeId(input.id, 'test gate oracle evidence id'),
+    ...(input.scenario ? { scenario: String(input.scenario) } : {}),
+    ...(input.expected !== undefined ? { expected: toJsonValue(input.expected) } : {}),
+    ...(input.actual !== undefined ? { actual: toJsonValue(input.actual) } : {}),
+    matches: input.matches !== false,
+    mismatches: uniqueStrings(input.mismatches),
+    ...(input.comparisonArtifact ? { comparisonArtifact: normalizeFilePath(input.comparisonArtifact) } : {}),
+    ...optionalObject('metadata', input.metadata)
   };
 }
 

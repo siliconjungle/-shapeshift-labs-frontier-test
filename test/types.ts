@@ -11,11 +11,14 @@ import {
   planTestRun,
   queryTestManifest,
   recordEvidenceTestRun,
+  recordTestGateExecution,
   recordTestRun,
+  summarizeTestGateExecutions,
   summarizeTestCoverage,
   traceTestImpact,
   type FrontierTestEvidenceRecord,
   type FrontierTestEvidenceRunRecord,
+  type FrontierTestGateExecutionRecord,
   type FrontierTestManifest,
   type FrontierTestRunRecord,
   type FrontierTestSpec
@@ -67,6 +70,16 @@ const evidenceRun: FrontierTestEvidenceRunRecord = recordEvidenceTestRun(compile
   evidence: [{ target: 'action.type', status: 'passed', source: 'type-test' }]
 });
 const evidence: FrontierTestEvidenceRecord = evidenceRun.evidence;
+const gateExecution: FrontierTestGateExecutionRecord = recordTestGateExecution({
+  id: 'gate.type',
+  kind: 'test',
+  status: 'passed',
+  command: 'npm',
+  args: ['test'],
+  replay: { sourceRefs: ['test/types.ts'] },
+  oracle: { id: 'oracle.type', matches: true }
+});
+const gateExecutionSummary = summarizeTestGateExecutions({ executions: [gateExecution] });
 const tap = encodeTestTap(run);
 const junit = encodeTestJunitXml(run);
 
@@ -81,3 +94,5 @@ query.ids satisfies string[];
 impact.specIds satisfies string[];
 plan.commandIds satisfies string[];
 evidence.observations satisfies readonly unknown[];
+gateExecution.artifactPaths satisfies string[];
+gateExecutionSummary.gates satisfies readonly unknown[];

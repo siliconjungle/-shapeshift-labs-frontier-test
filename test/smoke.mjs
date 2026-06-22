@@ -18,7 +18,9 @@ import {
   planTestRun,
   queryTestManifest,
   recordEvidenceTestRun,
+  recordTestGateExecution,
   recordTestRun,
+  summarizeTestGateExecutions,
   summarizeTestGateEvidence,
   summarizeTestPackageGateMatrix,
   redactTestValue,
@@ -417,6 +419,74 @@ assert.strictEqual(gateEvidence.byKind.smoke.passed, 1);
 assert.strictEqual(gateEvidence.byKind.browser.blocked, 1);
 assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.build').failureTail, ['npm run build', '> frontier-test@0.1.1 build', 'error: missing export frontier-test/gate summary']);
 assert.deepStrictEqual(gateEvidence.gates.find((gate) => gate.id === 'gate.browser').failureTail, ['playwright: browser launch timed out', 'retry budget exhausted']);
+
+const gateExecution = recordTestGateExecution({
+  id: 'gate.oracle.execution',
+  kind: 'oracle',
+  required: true,
+  status: false,
+  rawStatus: 'mismatch',
+  startedAt: 100,
+  finishedAt: 175,
+  attempt: 2,
+  maxAttempts: 3,
+  command: 'node',
+  args: ['scripts/oracle.mjs', '--seed', 'abc'],
+  cwd: 'packages/frontier-test',
+  envKeys: ['CI', 'ORACLE_FIXTURE'],
+  exitCode: 1,
+  stderrTail: 'oracle mismatch\nexpected: 1\nactual: 2',
+  artifacts: [
+    'reports/oracle.json',
+    { path: 'reports/oracle.trace.jsonl', kind: 'trace', bytes: 512, role: 'replay' }
+  ],
+  packageScope: ['packages/frontier-test'],
+  replay: {
+    seed: 'abc',
+    sourceRefs: ['test/oracles/oracle.fixture.json'],
+    jsonlPath: 'reports/oracle.trace.jsonl',
+    proofPath: 'reports/oracle.proof.json'
+  },
+  oracle: {
+    id: 'oracle.sum',
+    scenario: 'sum fixture',
+    expected: { value: 1 },
+    actual: { value: 2 },
+    matches: false,
+    mismatches: ['value'],
+    comparisonArtifact: 'reports/oracle.diff.json'
+  }
+});
+assert.strictEqual(gateExecution.kind, 'frontier.test.gate-execution');
+assert.strictEqual(gateExecution.gateKind, 'oracle');
+assert.strictEqual(gateExecution.status, 'failed');
+assert.strictEqual(gateExecution.durationMs, 75);
+assert.deepStrictEqual(gateExecution.command, ['node', 'scripts/oracle.mjs', '--seed', 'abc']);
+assert.deepStrictEqual(gateExecution.stderrTail, ['oracle mismatch', 'expected: 1', 'actual: 2']);
+assert.deepStrictEqual(gateExecution.artifactPaths, ['reports/oracle.json', 'reports/oracle.trace.jsonl']);
+assert.strictEqual(gateExecution.replay.seed, 'abc');
+assert.strictEqual(gateExecution.oracle.matches, false);
+
+const gateExecutionSummary = summarizeTestGateExecutions({
+  executions: [
+    gateExecution,
+    {
+      id: 'gate.build.execution',
+      kind: 'build',
+      status: 'passed',
+      required: true,
+      durationMs: 20,
+      artifacts: ['dist/build.log'],
+      package: 'packages/frontier-test'
+    }
+  ]
+});
+assert.strictEqual(gateExecutionSummary.kind, 'frontier.test.gate-evidence');
+assert.strictEqual(gateExecutionSummary.total, 2);
+assert.strictEqual(gateExecutionSummary.failed, 1);
+assert.strictEqual(gateExecutionSummary.passed, 1);
+assert.strictEqual(gateExecutionSummary.byKind.oracle.failed, 1);
+assert.strictEqual(gateExecutionSummary.byKind.build.passed, 1);
 
 const routingCorpus = createTestModelRoutingOracleCorpus();
 assert.strictEqual(routingCorpus.kind, 'frontier.test.model-routing-oracle');
