@@ -128,6 +128,14 @@
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-inspect"
   },
   {
+    "id": "frontier-runtime-proof",
+    "name": "@shapeshift-labs/frontier-runtime-proof",
+    "role": "Runtime-neutral proof capsules, source-bound runtime telemetry, and admission evidence helpers for Frontier merge and review workflows.",
+    "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-runtime-proof",
+    "repoName": "siliconjungle/-shapeshift-labs-frontier-runtime-proof",
+    "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-runtime-proof"
+  },
+  {
     "id": "frontier-scheduler",
     "name": "@shapeshift-labs/frontier-scheduler",
     "role": "Deterministic work scheduling, lanes, cancellation, backpressure, frame policies, replay snapshots, and work graphs.",
@@ -250,7 +258,7 @@
   {
     "id": "frontier-swarm-codex",
     "name": "@shapeshift-labs/frontier-swarm-codex",
-    "role": "Node Codex CLI adapter for Frontier swarm plans, including prompt rendering, worktree and snapshot workspaces, Codex argument compatibility, browser resource allocation, JSONL capture, verification commands, pid-backed stop, collect/apply workflows, merge indexes, queue overlays, merge bundles, normalized job evidence, coordinator query artifacts, and result artifacts.",
+    "role": "Node Codex CLI adapter for Frontier swarm plans, including prompt rendering, worktree and snapshot workspaces, Codex argument compatibility, browser resource allocation, JSONL capture, verification commands, pid-backed stop, collect/apply workflows, merge indexes, queue overlays, merge bundles, normalized job evidence, coordinator query artifacts, result artifacts, and run-log sync adapters.",
     "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-codex",
     "repoName": "siliconjungle/-shapeshift-labs-frontier-swarm-codex",
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-swarm-codex"
@@ -258,7 +266,7 @@
   {
     "id": "frontier-loom-ui",
     "name": "@shapeshift-labs/frontier-loom-ui",
-    "role": "Read-only Loom and Frontier operator dashboard for workspace-lifetime progress, active agents, queue state, evidence/admission status, run events, semantic leases, gate executions, git apply/workspace evidence, and coordinator steering intent files.",
+    "role": "Read-only Loom and Frontier operator dashboard for workspace-lifetime progress, active agents, queue state, evidence/admission status, run events, run-log sync projections, semantic leases, gate executions, git apply/workspace evidence, and coordinator steering intent files.",
     "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-loom-ui",
     "repoName": "siliconjungle/-shapeshift-labs-frontier-loom-ui",
     "repoUrl": "https://github.com/siliconjungle/frontier-loom-ui"
@@ -304,6 +312,22 @@
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-javascript"
   },
   {
+    "id": "frontier-lang-html",
+    "name": "@shapeshift-labs/frontier-lang-html",
+    "role": "HTML semantic merge evidence and projection adapter for Frontier Lang semantic documents, including element tree identity, attributes, text/comment spans, source maps, and fail-closed browser/runtime proof gaps.",
+    "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-html",
+    "repoName": "siliconjungle/-shapeshift-labs-frontier-lang-html",
+    "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-html"
+  },
+  {
+    "id": "frontier-lang-css",
+    "name": "@shapeshift-labs/frontier-lang-css",
+    "role": "CSS semantic merge evidence and projection adapter for Frontier Lang semantic documents, including selector specificity, declaration/cascade keys, custom properties, `@property` and `@page` descriptor evidence, CSS Modules/ICSS export and composition evidence, source maps, and fail-closed browser cascade/render proof gaps.",
+    "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-css",
+    "repoName": "siliconjungle/-shapeshift-labs-frontier-lang-css",
+    "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-css"
+  },
+  {
     "id": "frontier-lang-rust",
     "name": "@shapeshift-labs/frontier-lang-rust",
     "role": "Rust projection adapter for Frontier Lang semantic documents, including structs, aliases, and action stubs.",
@@ -330,7 +354,7 @@
   {
     "id": "frontier-lang-compiler",
     "name": "@shapeshift-labs/frontier-lang-compiler",
-    "role": "Compiler facade for Frontier Lang source documents, including parse, check, hash, diagnostics, universal AST envelopes, proof/paradigm semantic summaries, projection to TypeScript, JavaScript, Rust, Python, and C, and native source-import adapters for semantic merge evidence.",
+    "role": "Compiler facade for Frontier Lang source documents, including parse, check, hash, diagnostics, universal AST envelopes, proof/paradigm semantic summaries, projection to TypeScript, JavaScript, HTML, CSS, Rust, Python, and C, and native source-import adapters for semantic merge evidence.",
     "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-compiler",
     "repoName": "siliconjungle/-shapeshift-labs-frontier-lang-compiler",
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-compiler"
@@ -394,7 +418,7 @@
   {
     "id": "frontier-lang",
     "name": "@shapeshift-labs/frontier-lang",
-    "role": "Umbrella package for Frontier Lang kernel, parser, checker, compiler facade, universal AST helpers, projection adapters, and source-language importer adapters.",
+    "role": "Umbrella package for Frontier Lang kernel, parser, checker, compiler facade, universal AST helpers, projection adapters, HTML/CSS semantic merge evidence adapters, and source-language importer adapters.",
     "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/frontier-lang",
     "repoName": "siliconjungle/-shapeshift-labs-frontier-lang",
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-frontier-lang"
@@ -754,7 +778,7 @@
   {
     "id": "loom",
     "name": "@shapeshift-labs/loom",
-    "role": "Repo-level semantic collaboration CLI for .loom workspaces, including init, scan, status, graph snapshots, projection plans, Frontier Lang delegation, Frontier Swarm delegation, and Frontier Framework delegation.",
+    "role": "Repo-level semantic collaboration CLI for .loom workspaces, including init, scan, status, graph snapshots, projection plans, Frontier Lang delegation, Frontier Swarm delegation, run-log sync command delegation, and Frontier Framework delegation.",
     "npmUrl": "https://www.npmjs.com/package/@shapeshift-labs/loom",
     "repoName": "siliconjungle/-shapeshift-labs-loom",
     "repoUrl": "https://github.com/siliconjungle/-shapeshift-labs-loom"

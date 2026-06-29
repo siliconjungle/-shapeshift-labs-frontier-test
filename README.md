@@ -1,8 +1,8 @@
 # @shapeshift-labs/frontier-test
 
-Serializable test/spec evidence manifests and compact quality gate summaries for Frontier apps.
+Serializable test/spec evidence manifests for Frontier apps.
 
-`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, gate summaries, registry graph output, report adapters, and proof hashes.
+`frontier-test` makes tests queryable evidence: specs, fixtures, commands, expected patches, expected effects, route/policy assertions, coverage declarations, fuzzers, benchmarks, replay records, run diffs, registry graph output, report adapters, and proof hashes.
 
 ## Related Packages
 
@@ -24,6 +24,7 @@ The published Frontier package family is generated from one shared package catal
 - [`@shapeshift-labs/frontier-run`](https://www.npmjs.com/package/@shapeshift-labs/frontier-run): Append-only distributed run graphs, causal event DAGs, evidence nodes, lanes, leases, refs, segments, dashboard projections, and admission decision records for Frontier agent work.
 - [`@shapeshift-labs/frontier-lease`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lease): Runtime-neutral semantic, file, package, and repository lease claims with fencing tokens, expiry, conflict checks, apply validation, and replayable evidence for Frontier collaboration.
 - [`@shapeshift-labs/frontier-inspect`](https://www.npmjs.com/package/@shapeshift-labs/frontier-inspect): Cross-package inspection/evidence bundles, registry graph snapshots, feature/resource impact reports, timeline/event normalization, redaction, JSONL import/export, and AI-readable app feature maps.
+- [`@shapeshift-labs/frontier-runtime-proof`](https://www.npmjs.com/package/@shapeshift-labs/frontier-runtime-proof): Runtime-neutral proof capsules, source-bound runtime telemetry, and admission evidence helpers for Frontier merge and review workflows.
 - [`@shapeshift-labs/frontier-scheduler`](https://www.npmjs.com/package/@shapeshift-labs/frontier-scheduler): Deterministic work scheduling, lanes, cancellation, backpressure, frame policies, replay snapshots, and work graphs.
 - [`@shapeshift-labs/frontier-logging`](https://www.npmjs.com/package/@shapeshift-labs/frontier-logging): Opt-in structured logging, browser telemetry, scheduled sinks, file sinks, exporters, benchmark traces, and Frontier patch/update summaries.
 - [`@shapeshift-labs/frontier-mutation`](https://www.npmjs.com/package/@shapeshift-labs/frontier-mutation): Explicit mutation and selector plans compiled to Frontier patches or CRDT operations.
@@ -39,17 +40,19 @@ The published Frontier package family is generated from one shared package catal
 - [`@shapeshift-labs/frontier-queue`](https://www.npmjs.com/package/@shapeshift-labs/frontier-queue): Serializable durable queue state, leases, retries, dedupe keys, patch-carrying jobs, dead-letter records, replay evidence, and queue inspection for Frontier apps.
 - [`@shapeshift-labs/frontier-swarm`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm): Hierarchical swarm plans, lanes, compute profiles, ownership policy, semantic ownership regions, task queues, event streams, run records, merge bundles, merge indexes, queue overlays, merge admission, coordinator dashboards, changed-path checks, and proof artifacts for Frontier agent work.
 - [`@shapeshift-labs/frontier-swarm-git`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-git): Node Git, workspace, patch, changed-path, write-fence, package-link repair, patch check, HEAD read, blob hash, and apply-ledger adapter for Frontier swarm runners.
-- [`@shapeshift-labs/frontier-swarm-codex`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-codex): Node Codex CLI adapter for Frontier swarm plans, including prompt rendering, worktree and snapshot workspaces, Codex argument compatibility, browser resource allocation, JSONL capture, verification commands, pid-backed stop, collect/apply workflows, merge indexes, queue overlays, merge bundles, normalized job evidence, coordinator query artifacts, and result artifacts.
-- [`@shapeshift-labs/frontier-loom-ui`](https://www.npmjs.com/package/@shapeshift-labs/frontier-loom-ui): Read-only Loom and Frontier operator dashboard for workspace-lifetime progress, active agents, queue state, evidence/admission status, run events, semantic leases, gate executions, git apply/workspace evidence, and coordinator steering intent files.
+- [`@shapeshift-labs/frontier-swarm-codex`](https://www.npmjs.com/package/@shapeshift-labs/frontier-swarm-codex): Node Codex CLI adapter for Frontier swarm plans, including prompt rendering, worktree and snapshot workspaces, Codex argument compatibility, browser resource allocation, JSONL capture, verification commands, pid-backed stop, collect/apply workflows, merge indexes, queue overlays, merge bundles, normalized job evidence, coordinator query artifacts, result artifacts, and run-log sync adapters.
+- [`@shapeshift-labs/frontier-loom-ui`](https://www.npmjs.com/package/@shapeshift-labs/frontier-loom-ui): Read-only Loom and Frontier operator dashboard for workspace-lifetime progress, active agents, queue state, evidence/admission status, run events, run-log sync projections, semantic leases, gate executions, git apply/workspace evidence, and coordinator steering intent files.
 - [`@shapeshift-labs/frontier-lang-kernel`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-kernel): Runtime-neutral semantic source graph, type/lattice/extern declarations, patch bundles, replay, hashing, evidence records, and merge-admission kernel for Frontier Lang.
 - [`@shapeshift-labs/frontier-lang-parser`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-parser): Dependency-light Frontier Lang parser for modules, entities, state, actions, effects, types, externs, targets, and lattice declarations.
 - [`@shapeshift-labs/frontier-lang-checker`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-checker): Checker and diagnostics for Frontier Lang semantic documents, including type symbols, effects, regions, lattice laws, CRDT metadata, and patch evidence.
 - [`@shapeshift-labs/frontier-lang-typescript`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-typescript): TypeScript projection adapter for Frontier Lang semantic documents, including type/entity/state/action/extern declarations and CRDT lattice descriptors.
 - [`@shapeshift-labs/frontier-lang-javascript`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-javascript): JavaScript projection adapter for Frontier Lang semantic documents, including ESM action stubs and schema/lattice descriptors.
+- [`@shapeshift-labs/frontier-lang-html`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-html): HTML semantic merge evidence and projection adapter for Frontier Lang semantic documents, including element tree identity, attributes, text/comment spans, source maps, and fail-closed browser/runtime proof gaps.
+- [`@shapeshift-labs/frontier-lang-css`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-css): CSS semantic merge evidence and projection adapter for Frontier Lang semantic documents, including selector specificity, declaration/cascade keys, custom properties, `@property` and `@page` descriptor evidence, CSS Modules/ICSS export and composition evidence, source maps, and fail-closed browser cascade/render proof gaps.
 - [`@shapeshift-labs/frontier-lang-rust`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-rust): Rust projection adapter for Frontier Lang semantic documents, including structs, aliases, and action stubs.
 - [`@shapeshift-labs/frontier-lang-python`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-python): Python projection adapter for Frontier Lang semantic documents, including dataclasses, typed patch records, and action stubs.
 - [`@shapeshift-labs/frontier-lang-c`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-c): C header projection adapter for Frontier Lang semantic documents, including structs and action prototypes.
-- [`@shapeshift-labs/frontier-lang-compiler`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-compiler): Compiler facade for Frontier Lang source documents, including parse, check, hash, diagnostics, universal AST envelopes, proof/paradigm semantic summaries, projection to TypeScript, JavaScript, Rust, Python, and C, and native source-import adapters for semantic merge evidence.
+- [`@shapeshift-labs/frontier-lang-compiler`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-compiler): Compiler facade for Frontier Lang source documents, including parse, check, hash, diagnostics, universal AST envelopes, proof/paradigm semantic summaries, projection to TypeScript, JavaScript, HTML, CSS, Rust, Python, and C, and native source-import adapters for semantic merge evidence.
 - [`@shapeshift-labs/frontier-lang-swift`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-swift): Swift source-language importer package for Frontier Lang semantic documents, including package-level metadata, SwiftSyntax adapter helpers, native import results, and semantic sidecar generation for SwiftSyntax/SwiftParser-shaped syntax trees.
 - [`@shapeshift-labs/frontier-lang-kotlin`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-kotlin): Kotlin PSI source-language importer package for Frontier Lang semantic documents, including package-level metadata, Kotlin PSI adapter helpers, native import results, and semantic sidecar generation for Kotlin PSI/KtFile-shaped syntax trees.
 - [`@shapeshift-labs/frontier-lang-java`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-java): Java source-language importer package for Frontier Lang semantic documents, including package-level metadata, Java AST adapter helpers, native import results, and semantic sidecar generation for javac/JDT/JavaParser-shaped ASTs.
@@ -57,7 +60,7 @@ The published Frontier package family is generated from one shared package catal
 - [`@shapeshift-labs/frontier-lang-csharp`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-csharp): C# Roslyn source-language importer package for Frontier Lang semantic documents, including package-level metadata, Roslyn adapter helpers, native import results, and semantic sidecar generation for SyntaxTree/SyntaxNode-shaped ASTs.
 - [`@shapeshift-labs/frontier-lang-clang`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-clang): Clang AST source-language importer package for Frontier Lang semantic documents, including package-level metadata, Clang AST JSON adapter helpers, native import results, and semantic sidecar generation for C/C++ translation units.
 - [`@shapeshift-labs/frontier-lang-cli`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang-cli): Command line interface for parsing, checking, hashing, emitting, native source import/projection, semantic slicing, and corpus roundtrip evidence for Frontier Lang projects.
-- [`@shapeshift-labs/frontier-lang`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang): Umbrella package for Frontier Lang kernel, parser, checker, compiler facade, universal AST helpers, projection adapters, and source-language importer adapters.
+- [`@shapeshift-labs/frontier-lang`](https://www.npmjs.com/package/@shapeshift-labs/frontier-lang): Umbrella package for Frontier Lang kernel, parser, checker, compiler facade, universal AST helpers, projection adapters, HTML/CSS semantic merge evidence adapters, and source-language importer adapters.
 - [`@shapeshift-labs/frontier-kv`](https://www.npmjs.com/package/@shapeshift-labs/frontier-kv): Serializable in-memory key/value state for Frontier apps, including TTL, versioned compare-and-set, batched patch mutations, scans, watchers, snapshots, JSONL event evidence, and replay verification.
 - [`@shapeshift-labs/frontier-kv-locks`](https://www.npmjs.com/package/@shapeshift-labs/frontier-kv-locks): Lease-style lock records on top of Frontier KV, including acquire, renew, release, fencing tokens, expiration, owner evidence, and replayable lock events.
 - [`@shapeshift-labs/frontier-kv-rate-limit`](https://www.npmjs.com/package/@shapeshift-labs/frontier-kv-rate-limit): Patch-native rate limit buckets for Frontier KV, including fixed windows, sliding windows, token buckets, deterministic refill, consume evidence, and reset records.
@@ -101,7 +104,7 @@ The published Frontier package family is generated from one shared package catal
 - [`@shapeshift-labs/frontier-realtime-server`](https://www.npmjs.com/package/@shapeshift-labs/frontier-realtime-server): Authoritative realtime room, tick, command validation, rate-limit, session, and snapshot-history runtime.
 - [`@shapeshift-labs/frontier-realtime-websocket`](https://www.npmjs.com/package/@shapeshift-labs/frontier-realtime-websocket): WebSocket client, wire, and Node room-server transport for Frontier realtime.
 - [`@shapeshift-labs/frontier-game`](https://www.npmjs.com/package/@shapeshift-labs/frontier-game): Game-facing entity, component, player, room, ownership, spatial interest, rollback, physics, and replication helpers above realtime.
-- [`@shapeshift-labs/loom`](https://www.npmjs.com/package/@shapeshift-labs/loom): Repo-level semantic collaboration CLI for .loom workspaces, including init, scan, status, graph snapshots, projection plans, Frontier Lang delegation, Frontier Swarm delegation, and Frontier Framework delegation.
+- [`@shapeshift-labs/loom`](https://www.npmjs.com/package/@shapeshift-labs/loom): Repo-level semantic collaboration CLI for .loom workspaces, including init, scan, status, graph snapshots, projection plans, Frontier Lang delegation, Frontier Swarm delegation, run-log sync command delegation, and Frontier Framework delegation.
 
 Package source repositories:
 
@@ -121,6 +124,7 @@ Package source repositories:
 - [`siliconjungle/-shapeshift-labs-frontier-run`](https://github.com/siliconjungle/-shapeshift-labs-frontier-run)
 - [`siliconjungle/-shapeshift-labs-frontier-lease`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lease)
 - [`siliconjungle/-shapeshift-labs-frontier-inspect`](https://github.com/siliconjungle/-shapeshift-labs-frontier-inspect)
+- [`siliconjungle/-shapeshift-labs-frontier-runtime-proof`](https://github.com/siliconjungle/-shapeshift-labs-frontier-runtime-proof)
 - [`siliconjungle/-shapeshift-labs-frontier-scheduler`](https://github.com/siliconjungle/-shapeshift-labs-frontier-scheduler)
 - [`siliconjungle/-shapeshift-labs-frontier-logging`](https://github.com/siliconjungle/-shapeshift-labs-frontier-logging)
 - [`siliconjungle/-shapeshift-labs-frontier-mutation`](https://github.com/siliconjungle/-shapeshift-labs-frontier-mutation)
@@ -143,6 +147,8 @@ Package source repositories:
 - [`siliconjungle/-shapeshift-labs-frontier-lang-checker`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-checker)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-typescript`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-typescript)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-javascript`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-javascript)
+- [`siliconjungle/-shapeshift-labs-frontier-lang-html`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-html)
+- [`siliconjungle/-shapeshift-labs-frontier-lang-css`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-css)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-rust`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-rust)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-python`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-python)
 - [`siliconjungle/-shapeshift-labs-frontier-lang-c`](https://github.com/siliconjungle/-shapeshift-labs-frontier-lang-c)
@@ -246,110 +252,6 @@ const plan = planTestRun(tests, {
 });
 ```
 
-## Gate Evidence Dashboards
-
-`summarizeTestGateEvidence(...)` is the compact shape for agent-facing quality gates. It is intended for dashboard and testing views that need to answer the same question at a glance: did the unit, build, fuzz, smoke, and browser gates pass, which ones were required, how long did they take, what failed, which artifacts should be opened, and which package scope they belong to.
-
-For human-readable dashboards, keep the presentation simple:
-
-- Show one row per gate with `kind`, `required`, `status`, `durationMs`, `failureTail`, `artifacts`, and `packageScope`.
-- Surface required gates first, then optional gates, with failed and blocked rows ahead of passed rows.
-- Render only the tail of the failure message or log, not the full stream.
-- Make artifact links clickable so the report, log, or trace file can be opened immediately.
-- Keep the package scope visible so agent work can be attributed to the right workspace or package boundary.
-
-Example:
-
-```ts
-import { summarizeTestGateEvidence } from '@shapeshift-labs/frontier-test';
-
-const gateEvidence = summarizeTestGateEvidence({
-  packageScope: ['packages/frontier-test'],
-  gates: [
-    { id: 'gate.unit', kind: 'unit', required: true, status: 'passed', durationMs: 42, artifacts: ['reports/unit.json'], packageScope: ['packages/frontier-test'] },
-    { id: 'gate.build', kind: 'build', required: true, status: 'failed', durationMs: 120, failureTail: 'npm run build\nerror: missing export', artifacts: ['dist/build.log'], packageScope: ['packages/frontier-test'] }
-  ]
-});
-```
-
-## Node Gate Runner
-
-The root package stays runtime-neutral. `@shapeshift-labs/frontier-test/node` is the Node-only adapter that actually runs command gates and records them using the same `frontier.test.gate-execution` and `frontier.test.gate-evidence` shapes.
-
-Use it for standard build, test, fuzz, smoke, browser, and oracle commands when a coordinator needs replayable gate evidence instead of ad hoc shell logs.
-
-```ts
-import { runTestGateSuite } from '@shapeshift-labs/frontier-test/node';
-
-const result = await runTestGateSuite({
-  outDir: 'agent-runs/current/gates',
-  gates: [
-    { id: 'gate.build', kind: 'build', command: 'npm', args: ['run', 'build'], required: true },
-    { id: 'gate.fuzz', kind: 'fuzz', command: 'node', args: ['test/fuzz.mjs', '--cases', '300'], artifacts: ['benchmarks/results/fuzz.json'] },
-    { id: 'gate.browser', kind: 'browser', command: 'npx', args: ['playwright', 'test'], artifacts: ['playwright-report/index.html'] }
-  ]
-});
-```
-
-`runTestGateSuite(...)` runs gates sequentially, captures bounded stdout/stderr tails, records exit code or timeout status, annotates artifact paths with file sizes when they exist, writes `gate-executions.jsonl` and `gate-summary.json` when `outDir` is provided, and returns `ok: false` when a required gate fails, blocks, or remains unknown. Optional failed gates are preserved in the evidence without failing the suite.
-
-## Package Gate Matrix
-
-`summarizeTestPackageGateMatrix(...)` is the package-oriented dashboard shape for autonomous apply. Use it when a run needs to show the changed package gate, dependency-selected package gates, and skipped unrelated package gates in one compact table.
-
-For performance and testing dashboard views, keep the presentation simple:
-
-- Show `packageId`, `packagePath`, `packageName`, `selection`, `dependencyOrder`, `required`, `status`, `durationMs`, and `failureTail`.
-- Keep selected and dependency-selected rows ahead of skipped rows.
-- Preserve the dependency-order column exactly as the autonomous apply planner produced it.
-- Render only the failure tail so the matrix stays compact and scannable.
-- Keep the package identity visible so the dashboard can point back to the correct workspace or release-train entry.
-
-Example:
-
-```ts
-import { summarizeTestPackageGateMatrix } from '@shapeshift-labs/frontier-test';
-
-const packageGateMatrix = summarizeTestPackageGateMatrix({
-  packageScope: ['packages/frontier-test'],
-  gates: [
-    {
-      id: 'pkg.frontier-test',
-      packageId: 'frontier-test',
-      packagePath: 'packages/frontier-test',
-      packageName: '@shapeshift-labs/frontier-test',
-      selection: 'selected',
-      dependencyOrder: 0,
-      required: true,
-      status: 'passed',
-      durationMs: 42
-    },
-    {
-      id: 'pkg.frontier-swarm-codex',
-      packageId: 'frontier-swarm-codex',
-      packagePath: 'packages/frontier-swarm-codex',
-      packageName: '@shapeshift-labs/frontier-swarm-codex',
-      selection: 'dependency-selected',
-      dependencyOrder: 1,
-      required: true,
-      status: 'failed',
-      durationMs: 120,
-      failureTail: 'npm run test\nerror: missing export'
-    },
-    {
-      id: 'pkg.frontier-swarm',
-      packageId: 'frontier-swarm',
-      packagePath: 'packages/frontier-swarm',
-      packageName: '@shapeshift-labs/frontier-swarm',
-      selection: 'skipped',
-      required: false,
-      status: 'skipped',
-      durationMs: 0
-    }
-  ]
-});
-```
-
 ## Surface
 
 - `createTestManifest`, `defineSpec`, `compileTestManifest`, `validateTestManifest`, and `queryTestManifest` describe declarative test/spec evidence.
@@ -367,27 +269,6 @@ const packageGateMatrix = summarizeTestPackageGateMatrix({
 `recordEvidenceTestRun` accepts structural producer output such as Playwright timeline reports, inspect bundles, framework surface coverage reports, trace records, log records, or direct evidence observations. It matches those observations back to declared specs by spec id, feature, route, action, effect, policy, state path, artifact, trace id, or `covers` target, then emits one run record and proof for handoff.
 
 `@shapeshift-labs/frontier-tools`, `@shapeshift-labs/frontier-workflow`, `@shapeshift-labs/frontier-policy`, `@shapeshift-labs/frontier-route`, `@shapeshift-labs/frontier-manifest`, and `@shapeshift-labs/frontier-inspect` remain structural consumers. This package records that a spec covers an action, workflow, policy, route, feature, migration, fuzzer, or benchmark without importing those packages.
-
-## Model Routing Oracle Fixtures
-
-`createTestModelRoutingOracleCorpus(...)` returns six stable scenarios for adaptive routing tests: simple docs, isolated package code, broad semantic merge, repeated failure, human ambiguity, and tournament-backed downgrade. Each fixture carries a plain-English label, a scenario id, a stable expected route, and a disposition of `route`, `escalate`, or `downgrade`.
-
-`compareTestModelRoutingDecision(actual, oracle)` normalizes common router decision fields such as `route`, `model`, `selectedModel`, `decision`, `outcome`, and `status`, so swarm and codex callers can compare their runtime decision records against the shared oracle fixtures.
-
-Example:
-
-```ts
-import {
-  compareTestModelRoutingDecision,
-  createTestModelRoutingOracleCorpus
-} from '@shapeshift-labs/frontier-test';
-
-const corpus = createTestModelRoutingOracleCorpus();
-const comparison = compareTestModelRoutingDecision(
-  { id: corpus.fixtures[0].id, route: 'gpt-5.4-mini', decision: 'route' },
-  corpus.fixtures[0]
-);
-```
 
 ## Benchmarks
 
